@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Compass } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { name: 'Stays',        path: '/properties', active: true },
@@ -27,6 +28,7 @@ const Badge = ({ label, type }) => (
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const handleSoon = (item) => {
     toast.info(`${item.name} coming soon`, {
@@ -85,9 +87,18 @@ const Navbar = () => {
             {/* Desktop CTA */}
             <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
               <div className="w-px h-8 bg-[#2A2D38]" />
-              <button className="px-4 py-2 bg-[#C8FB4C] text-[#0F1117] text-[13px] font-bold rounded-lg hover:opacity-90 transition-opacity">
-                Sign in
-              </button>
+              {user ? (
+                  <button
+                      onClick={logout}
+                      className="px-4 py-2 bg-[#1A1D26] text-[#FAFAF8] text-[13px] font-bold rounded-lg hover:bg-[#2A2D38] transition-colors"
+                  >
+                    Logout
+                  </button>
+              ) : (
+                  <Link to="/login" className="px-4 py-2 bg-[#C8FB4C] text-[#0F1117] text-[13px] font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center">
+                    Sign in
+                  </Link>
+              )}
             </div>
 
             {/* Mobile toggle */}
@@ -135,12 +146,22 @@ const Navbar = () => {
                   );
                 })}
               </div>
-              <button
-                  onClick={() => setIsOpen(false)}
-                  className="mt-4 w-full py-2.5 bg-[#C8FB4C] text-[#0F1117] text-sm font-bold rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Sign in
-              </button>
+              {user ? (
+                  <button
+                      onClick={() => { setIsOpen(false); logout(); }}
+                      className="mt-4 w-full py-2.5 bg-[#1A1D26] text-[#FAFAF8] text-sm font-bold rounded-lg hover:bg-[#2A2D38] transition-colors"
+                  >
+                    Logout
+                  </button>
+              ) : (
+                  <Link
+                      to="/login"
+                      onClick={() => setIsOpen(false)}
+                      className="mt-4 w-full py-2.5 bg-[#C8FB4C] text-[#0F1117] text-sm font-bold rounded-lg hover:opacity-90 transition-opacity block text-center"
+                  >
+                    Sign in
+                  </Link>
+              )}
             </div>
         )}
       </nav>

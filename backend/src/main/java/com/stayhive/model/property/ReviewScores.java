@@ -1,5 +1,4 @@
-package com.example.mongo.model.Listing;
-
+package com.stayhive.model.property;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,7 +6,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Availability {
+public class ReviewScores {
 
-    private Integer availability30;
+    private Integer reviewScoresRating;
 }

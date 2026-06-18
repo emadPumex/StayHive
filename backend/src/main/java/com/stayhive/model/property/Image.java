@@ -1,14 +1,13 @@
-package com.example.mongo.model.Listing;
+package com.stayhive.model.property;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Address {
+public class Image {
 
-    private String country;
-    private String market;
+    private String pictureUrl;
 }

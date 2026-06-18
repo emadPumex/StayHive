@@ -1,19 +1,18 @@
-package com.example.mongo.model.Listing;
+package com.stayhive.model.property;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "listings")
-public class Listing {
+@Document(collection = "properties")
+public class Property {
 
 
     @Id
@@ -40,7 +39,7 @@ public class Listing {
 
     private Availability availability;
 
-    private Images images;
+    private Image image;
 
     private String summary;
 

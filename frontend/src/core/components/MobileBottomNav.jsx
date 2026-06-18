@@ -41,13 +41,13 @@ const MobileBottomNav = () => {
       </button>
 
       {/* Profile/Menu */}
-      <button 
-        onClick={() => handleSoon('Guest Dashboard')}
-        className={inactiveClass}
+      <NavLink 
+        to="/login" 
+        className={({ isActive }) => isActive ? activeClass : inactiveClass}
       >
         <User className="h-5 w-5 mb-0.5" />
         <span className="text-[10px] tracking-tight">Profile</span>
-      </button>
+      </NavLink>
 
     </div>
   );

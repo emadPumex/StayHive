@@ -1,11 +1,12 @@
-package com.example.mongo.service;
+package com.stayhive.service;
 
 
-import com.example.mongo.model.Listing.Listing;
-import com.example.mongo.model.Listing.ListingFilterParams;
-import com.example.mongo.model.Listing.LocationMetadata;
-import com.example.mongo.repository.ListingRepository;
+import com.stayhive.model.property.Property;
+import com.stayhive.model.property.ListingFilterParams;
+import com.stayhive.model.property.LocationMetadata;
+import com.stayhive.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -27,13 +28,14 @@ public class ListingService {
 
     private final MongoTemplate mongoTemplate;
 
-    public Page<Listing> getListings(ListingFilterParams p, Pageable pageable) {
+    public Page<Property> getListings(ListingFilterParams p, Pageable pageable) {
         Query query = buildQuery(p);
 
-        long total = mongoTemplate.count(query, Listing.class);
+        long total = mongoTemplate.count(query, Property.class);
 
         query.with(pageable);
-        List<Listing> results = mongoTemplate.find(query,Listing.class);
+
+        List<Property> results = mongoTemplate.find(query, Property.class);
 
         return new PageImpl<>(results, pageable, total);
     }
@@ -91,7 +93,7 @@ public class ListingService {
 
     public LocationMetadata getLocationsMetadata() {
         // Fetch only address info if optimization is required, or all listings for simplicity
-        List<Listing> allListings = listingRepository.findAll();
+        List<Property> allListings = listingRepository.findAll();
 
         // 1. Extract unique, sorted countries
         List<String> countries = allListings.stream()
@@ -123,9 +125,9 @@ public class ListingService {
 
 
 
-    public Listing getListingById(String id) {
+    public Property getListingById(String id) {
         // repo.findById() automatically wraps the result in an Optional container
-        Optional<Listing> optionalListing = listingRepository.findById(id);
+        Optional<Property> optionalListing = listingRepository.findById(id);
 
         // Return the object inside the Optional, or null if the container is empty
         return optionalListing.orElse(null);

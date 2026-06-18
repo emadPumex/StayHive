@@ -1,4 +1,4 @@
-package com.example.mongo.model.Listing;
+package com.stayhive.model.property;
 
 import java.util.List;
 import java.util.Map;
