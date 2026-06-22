@@ -5,6 +5,8 @@ import HomePage from '../../features/home/pages/HomePage';
 import LoginPage from '../../features/auth/pages/LoginPage';
 import propertyRoutes from '../../features/properties/routes';
 import OAuth2RedirectHandler from "../../features/auth/pages/OAuth2RedirectHandler.jsx";
+import BecomeHostVerifyPage from '../../features/auth/pages/BecomeHostVerifyPage.jsx';
+import ListPropertyPage from '../../features/properties/pages/ListPropertyPage.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +31,14 @@ export const router = createBrowserRouter([
   {
     path: '/oauth2/redirect',
     element: <OAuth2RedirectHandler />,
+  },
+  {
+    path: '/become-a-host',
+    element: <BecomeHostVerifyPage />,
+  },
+  {
+    path: '/list-property',
+    element: <ListPropertyPage />,
   },
 ]);
 

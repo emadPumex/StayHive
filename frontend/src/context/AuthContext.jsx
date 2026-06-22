@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {createContext, useContext, useEffect, useState} from 'react';
 import apiClient from '../core/api/apiClient';
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({children}) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -18,15 +18,17 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    useEffect(() => { checkAuth(); }, []);
+    useEffect(() => {
+        checkAuth();
+    }, []);
 
     const logout = async () => {
-        await apiClient.post('/auth/logout' );
+        await apiClient.post('/auth/logout');
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, logout, checkAuth }}>
+        <AuthContext.Provider value={{user, loading, logout, checkAuth}}>
             {children}
         </AuthContext.Provider>
     );

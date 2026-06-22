@@ -30,11 +30,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromCookie(request);
 
-        if (token != null && jwtUtil.isTokenValid(token)) {
+
+        if (token == null || !jwtUtil.isTokenValid(token)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            response.getWriter().write("""
+            {
+                "error": "UNAUTHORIZED",
+                "message": "please login"
+            }
+            """);
+            return;
+        }
+
             String email = jwtUtil.extractEmail(token);
             var auth = new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(auth);
-        }
+
         filterChain.doFilter(request, response);
     }
 

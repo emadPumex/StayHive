@@ -1,37 +1,44 @@
 package com.stayhive.model.property;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+@Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "properties")
 public class Property {
 
-
     @Id
     private String id;
 
     private String name;
-    private String propertyType;
-    private String roomType;
+
+    private PropertyType propertyType;
+
+    private RoomType roomType;
+
     private Double price;
 
     private Integer accommodates;
+
     private Integer bedrooms;
-    private Double bathrooms;
+
+    private Integer bathrooms;
 
     private List<String> amenities;
 
-    private String cancellationPolicy;
+    private CancellationPolicy cancellationPolicy;
 
-    private ReviewScores reviewScores;
+    private String summary;
 
     private Host host;
 
@@ -39,9 +46,49 @@ public class Property {
 
     private Availability availability;
 
-    private Image image;
+    private Image images;
 
-    private String summary;
+    private Double averageRating;
 
-    private List<Review> reviews;
+    private Integer reviewCount;
+
+    private Boolean isActive;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+
+    public enum PropertyType {
+
+        APARTMENT,
+
+        HOUSE,
+
+        VILLA,
+
+        CABIN,
+
+        COTTAGE,
+
+        HOTEL,
+
+        RESORT
+    }
+
+    public enum RoomType {
+
+        ENTIRE_PLACE,
+
+        PRIVATE_ROOM,
+
+        SHARED_ROOM
+    }
+
+    public enum CancellationPolicy {
+        FLEXIBLE,
+        MODERATE,
+        STRICT,
+        SUPER_STRICT
+    }
 }

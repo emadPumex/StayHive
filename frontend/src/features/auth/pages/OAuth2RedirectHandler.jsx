@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useAuth } from '../../../context/AuthContext';
+import React, {useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {toast} from 'sonner';
+import {useAuth} from '../../../context/AuthContext';
 
 const OAuth2RedirectHandler = () => {
     const navigate = useNavigate();
-    const { checkAuth } = useAuth();
+    const {checkAuth} = useAuth();
 
     useEffect(() => {
         const handleAuth = async () => {

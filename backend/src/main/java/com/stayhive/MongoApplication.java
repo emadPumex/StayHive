@@ -8,10 +8,10 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport;
 @EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 public class MongoApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MongoApplication.class, args);
+    public static void main(String[] args) {
+        SpringApplication.run(MongoApplication.class, args);
 
-	}
+    }
 
 
 }

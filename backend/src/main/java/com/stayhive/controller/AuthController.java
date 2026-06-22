@@ -41,6 +41,7 @@ public class AuthController {
         }
         Map<String, Object> body = new HashMap<>();
         body.put("authenticated", true);
+        body.put("id", user.get().getId());
         body.put("email", user.get().getEmail());
         body.put("name", user.get().getName());
         body.put("picture", user.get().getPicture());
