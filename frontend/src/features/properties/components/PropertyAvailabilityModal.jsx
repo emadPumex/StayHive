@@ -4,7 +4,7 @@ import { T } from './list-property/constants';
 
 const PropertyAvailabilityModal = ({ isOpen, onClose, property, onSave }) => {
     // Current local time date: 2026-06-22
-    const TODAY_STR = '2026-06-22';
+    const TODAY_STR = new Date().toISOString().split('T')[0];
     
     // Calendar month tracking (start at June 2026)
     const [currentYear, setCurrentYear] = useState(2026);
@@ -15,8 +15,11 @@ const PropertyAvailabilityModal = ({ isOpen, onClose, property, onSave }) => {
 
     useEffect(() => {
         if (property) {
-            setBlockedDates(property.blockedDates || []);
-            setOriginalBlockedDates(property.blockedDates || []);
+            // Blocked dates are nested under property.availability.blockedDates from the backend.
+            // Fallback to property.blockedDates for any legacy/mock data shape.
+            const existing = property.availability?.blockedDates || property.blockedDates || [];
+            setBlockedDates(existing);
+            setOriginalBlockedDates(existing);
         }
     }, [property, isOpen]);
 
@@ -48,13 +51,25 @@ const PropertyAvailabilityModal = ({ isOpen, onClose, property, onSave }) => {
     };
 
     const handleDateClick = (dateStr, isBooked, isPast) => {
-        if (isPast || isBooked) return; // Unclickable states
+        // Past dates and guest-booked dates are always unclickable
+        if (isPast || isBooked) return;
 
+        // Toggle: if already blocked → unblock it (make available); if available → block it
         if (blockedDates.includes(dateStr)) {
-            setBlockedDates(blockedDates.filter(d => d !== dateStr));
+            setBlockedDates(prev => prev.filter(d => d !== dateStr));
         } else {
-            setBlockedDates([...blockedDates, dateStr]);
+            setBlockedDates(prev => [...prev, dateStr]);
         }
+    };
+
+    // Quick action: unblock all host-blocked dates
+    const handleClearAllBlocks = () => {
+        setBlockedDates([]);
+    };
+
+    // Quick action: revert all changes back to the last saved state
+    const handleReset = () => {
+        setBlockedDates(originalBlockedDates);
     };
 
     const handleSave = () => {
@@ -116,7 +131,7 @@ const PropertyAvailabilityModal = ({ isOpen, onClose, property, onSave }) => {
                         const isBlocked = blockedDates.includes(dateStr);
                         const isToday = dateStr === TODAY_STR;
 
-                        let btnClass = "relative aspect-square w-full rounded-lg flex flex-col items-center justify-center text-xs font-semibold transition-all duration-200 cursor-pointer select-none ";
+                        let btnClass = "relative aspect-square w-full rounded-lg flex flex-col items-center justify-center text-xs font-semibold transition-all duration-200 select-none ";
                         let cellStyle = {};
 
                         if (isPast) {
@@ -124,13 +139,14 @@ const PropertyAvailabilityModal = ({ isOpen, onClose, property, onSave }) => {
                         } else if (isBooked) {
                             btnClass += "bg-indigo-600/90 text-white shadow-[0_0_12px_rgba(79,70,229,0.3)] cursor-not-allowed group";
                         } else if (isBlocked) {
-                            btnClass += "border border-[#F5C842] text-[#F5C842] hover:bg-[#F5C842]/10";
+                            // Blocked by host — clickable to unblock. Show a subtle X hint on hover.
+                            btnClass += "cursor-pointer border border-[#F5C842] text-[#F5C842] hover:border-rose-400 hover:text-rose-300 hover:bg-rose-400/10 active:scale-95";
                             cellStyle = {
                                 background: 'repeating-linear-gradient(45deg, rgba(245,200,66,0.05), rgba(245,200,66,0.05) 3px, rgba(245,200,66,0.15) 3px, rgba(245,200,66,0.15) 6px)'
                             };
                         } else {
-                            // Available
-                            btnClass += "bg-[#1A1D26] text-[#FAFAF8] border border-[#2A2D38] hover:border-[#C8FB4C] hover:scale-105 active:scale-95";
+                            // Available — clickable to block
+                            btnClass += "cursor-pointer bg-[#1A1D26] text-[#FAFAF8] border border-[#2A2D38] hover:border-[#C8FB4C] hover:scale-105 active:scale-95";
                             if (isToday) {
                                 btnClass += " ring-1 ring-[#C8FB4C] ring-offset-2 ring-offset-[#0F1117]";
                             }
@@ -144,9 +160,15 @@ const PropertyAvailabilityModal = ({ isOpen, onClose, property, onSave }) => {
                                 onClick={() => handleDateClick(dateStr, isBooked, isPast)}
                                 className={btnClass}
                                 style={cellStyle}
+                                title={
+                                    isPast ? 'Past date' :
+                                    isBooked ? 'Guest Stay — cannot modify' :
+                                    isBlocked ? 'Click to unblock (make available)' :
+                                    'Click to block this date'
+                                }
                             >
                                 <span>{day.getDate()}</span>
-                                
+
                                 {isBooked && (
                                     <div className="absolute hidden group-hover:block bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
                                         <div className="bg-[#0F1117] text-[#FAFAF8] border border-indigo-500/50 text-[10px] py-1 px-2.5 rounded-lg shadow-xl whitespace-nowrap">
@@ -257,29 +279,56 @@ const PropertyAvailabilityModal = ({ isOpen, onClose, property, onSave }) => {
                 </div>
 
                 {/* Footer Action Row */}
-                <div className="p-6 border-t border-[#1A1D26] bg-[#131722]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-2 max-w-xl">
+                <div className="p-4 border-t border-[#1A1D26] bg-[#131722]/50 flex flex-col gap-3">
+                    {/* Summary info row */}
+                    <div className="flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-[#8A8FA8] shrink-0 mt-0.5" />
                         <p className="text-xs text-[#8A8FA8] font-medium leading-relaxed">
                             {summaryStatement}
                         </p>
                     </div>
-                    
-                    <div className="flex items-center justify-end gap-4 shrink-0">
-                        <button 
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2.5 text-xs font-bold text-[#8A8FA8] hover:text-[#FAFAF8] transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={handleSave}
-                            className="px-6 py-2.5 bg-[#C8FB4C] hover:bg-[#b5e243] active:scale-95 text-[#0F1117] text-xs font-bold rounded-xl shadow-[0_0_20px_rgba(200,251,76,0.15)] transition-all duration-200"
-                        >
-                            Save Changes
-                        </button>
+
+                    {/* Quick actions + primary actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        {/* Quick actions */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleClearAllBlocks}
+                                disabled={blockedDates.length === 0}
+                                className="px-3 py-2 text-[10px] font-bold text-rose-400 border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
+                                title="Unblock all host-blocked dates at once"
+                            >
+                                Clear All Blocks
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                disabled={addedCount === 0 && removedCount === 0}
+                                className="px-3 py-2 text-[10px] font-bold text-[#8A8FA8] border border-[#2A2D38] bg-[#1A1D26] hover:bg-[#2A2D38] disabled:opacity-30 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
+                                title="Revert all unsaved changes"
+                            >
+                                Reset
+                            </button>
+                        </div>
+
+                        {/* Primary actions */}
+                        <div className="flex items-center gap-3 shrink-0">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-4 py-2.5 text-xs font-bold text-[#8A8FA8] hover:text-[#FAFAF8] transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                className="px-6 py-2.5 bg-[#C8FB4C] hover:bg-[#b5e243] active:scale-95 text-[#0F1117] text-xs font-bold rounded-xl shadow-[0_0_20px_rgba(200,251,76,0.15)] transition-all duration-200"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,14 +44,19 @@ public class HostAuthController {
     }
 
     @PostMapping("/send-otp")
-    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request, Authentication authentication) {
         String email = request.get("email");
         if (email == null || email.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
         }
         email = email.trim().toLowerCase();
+        String loggedInEmail = authentication.getName();
 
-        // server-side resend cooldown — don't trust frontend timer alone
+        if (!loggedInEmail.equalsIgnoreCase(email) ) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error",
+                            "Property email must match your account email."));
+        }
 
         var existing = otprepo.findByEmail(email);
         if (existing.isPresent()) {

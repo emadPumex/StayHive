@@ -42,13 +42,13 @@ public class SecurityConfig {
 
 
     @Bean
-    public SecurityFilterChain  securityFilter(HttpSecurity http){
+    public SecurityFilterChain securityFilter(HttpSecurity http) {
 
         http
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOriginPatterns(List.of("http://localhost:5173"));
-                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
                     return config;
@@ -56,7 +56,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth2/**", "/login/**","/login/oauth2/**", "/api/auth/logout", "/api/auth/me","/api/properties","/api/properties*").permitAll()
+                        .requestMatchers("/oauth2/**", "/login/**", "/login/oauth2/**", "/api/auth/logout", "/api/auth/me", "/api/properties", "/api/properties*").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth

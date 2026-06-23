@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -33,6 +34,17 @@ public class CloudinaryService {
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload file to Cloudinary in folder: " + folderPath, e);
+        }
+    }
+
+    public void deleteFile(String publicId) {
+        if (publicId == null || publicId.isBlank()) return;
+        try {
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+        } catch (IOException e) {
+
+            // failed deletions should ideally be pushed to a dead-letter queue or log file for manual cleanup later.
+            System.err.println("Failed to delete Cloudinary asset: " + publicId + " - " + e.getMessage());
         }
     }
 }

@@ -1,18 +1,11 @@
 package com.stayhive.service;
 
-import com.cloudinary.Cloudinary;
-import com.stayhive.dto.PropertyDetailsResponseDTO;
+
+import com.stayhive.dto.*;
 import com.stayhive.model.Review;
-import com.stayhive.model.property.Property;
-import com.stayhive.model.property.Address;
-import com.stayhive.model.property.Host;
-import com.stayhive.model.property.Availability;
-import com.stayhive.model.property.Image;
-import com.stayhive.dto.ListingFilterParams;
-import com.stayhive.dto.LocationMetadata;
-import com.stayhive.dto.PropertyFormDTO;
-import com.stayhive.repository.PropertyRepository;
-import com.stayhive.repository.ReviewRepository;
+import com.stayhive.model.User;
+import com.stayhive.model.property.*;
+import com.stayhive.repository.*;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.PageImpl;
@@ -26,8 +19,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 
+import java.time.LocalDate;
 import java.util.Map;
 
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +36,10 @@ public class PropertyService {
     private final MongoTemplate mongoTemplate;
     private final CloudinaryService cloudinaryService;
     private final ReviewRepository reviewRepository;
+    private final VerificationTokenRepository tokenRepository;
+    private final EmailService emailService;
+    private final UserRepository userRepository;
+    private final PropertyRepository propertyRepository;
 
     public Page<Property> getListings(ListingFilterParams p, Pageable pageable) {
         Query query = buildQuery(p);
@@ -52,7 +51,7 @@ public class PropertyService {
 
     private Query buildQuery(ListingFilterParams p) {
         List<Criteria> criteria = new ArrayList<>();
-
+        criteria.add(Criteria.where("isActive").is(true));
         // Text search — name, city, country
         if (hasVal(p.getSearch())) {
             String regex = ".*" + Pattern.quote(p.getSearch()) + ".*";
@@ -147,70 +146,215 @@ public class PropertyService {
     }
 
 
-    public Property createPropertyListing(PropertyFormDTO dto) {
-        // 1. Setup Host object (Pinterest default fallback URL applied naturally if file is missing)
+    public Property initiatePropertyCreation(PropertyFormDTO dto, String ownerEmail) {
+
+
+        User user = userRepository.findByEmail(ownerEmail)
+                .orElseThrow(() -> new RuntimeException("Logged-in account not found for: " + ownerEmail));
+
         Host host = Host.builder()
+                .hostId(user.getId())       // Store the verified User ID inside the embedded host block
                 .hostName(dto.hostName())
                 .build();
         if (dto.profileImageUrl() != null && !dto.profileImageUrl().isEmpty()) {
-            String hostUrl = cloudinaryService.uploadFile(dto.profileImageUrl(), "stayhive/hosts");
-            host.setProfileImageUrl(hostUrl);
+            host.setProfileImageUrl(cloudinaryService.uploadFile(dto.profileImageUrl(), "stayhive/hosts"));
         }
 
-        // 2. Setup Address sub-document object
         Address address = Address.builder()
-                .country(dto.country())
-                .state(dto.state())
-                .city(dto.city())
-                .latitude(dto.latitude())
-                .longitude(dto.longitude())
+                .country(dto.country()).state(dto.state()).city(dto.city())
+                .latitude(dto.latitude()).longitude(dto.longitude())
                 .build();
 
-        // 3. Map directly into the main Property Entity using clean DTO Enum formats
         Property property = Property.builder()
-                .name(dto.name())
-                .propertyType(dto.propertyType())
-                .roomType(dto.roomType())
-                .price(dto.price())
-                .accommodates(dto.accommodates())
-                .bedrooms(dto.bedrooms())
-                .bathrooms(dto.bathrooms())
-                .summary(dto.summary())
-                .amenities(dto.amenities())
+                .name(dto.name()).propertyType(dto.propertyType()).roomType(dto.roomType())
+                .price(dto.price()).accommodates(dto.accommodates()).bedrooms(dto.bedrooms())
+                .bathrooms(dto.bathrooms()).summary(dto.summary()).amenities(dto.amenities())
                 .cancellationPolicy(dto.cancellationPolicy())
-                .host(host)
-                .address(address) // Linked nested address document
-                .isActive(true)
+                .host(host).address(address)
+                .isActive(false)
                 .build();
 
-        // 4. Persist initial shell to fetch MongoDB's unique reference ID
         Property savedProperty = listingRepository.save(property);
         String propertyId = savedProperty.getId();
 
-        // 5. Upload multiple property files to "stayhive/listings/{propertyId}"
         if (dto.images() != null && !dto.images().isEmpty()) {
             List<String> uploadedGalleryUrls = new ArrayList<>();
             String folderStructure = "stayhive/listings/" + propertyId;
 
             for (MultipartFile imgFile : dto.images()) {
                 if (imgFile != null && !imgFile.isEmpty()) {
-                    String url = cloudinaryService.uploadFile(imgFile, folderStructure);
-                    uploadedGalleryUrls.add(url);
+                    uploadedGalleryUrls.add(cloudinaryService.uploadFile(imgFile, folderStructure));
                 }
             }
 
-            // 6. Build and bind the image schema details if files exist
             if (!uploadedGalleryUrls.isEmpty()) {
-                Image propertyImageContainer = Image.builder()
-                        .coverImageUrl(uploadedGalleryUrls.get(0)) // Set first image as cover layout
-                        .imageUrls(uploadedGalleryUrls)            // Full list map
-                        .build();
-
-                savedProperty.setImages(propertyImageContainer);
-                savedProperty = listingRepository.save(savedProperty);
+                savedProperty.setImages(Image.builder()
+                        .coverImageUrl(uploadedGalleryUrls.get(0))
+                        .imageUrls(uploadedGalleryUrls).build());
+                listingRepository.save(savedProperty);
             }
         }
 
+
+        String token = UUID.randomUUID().toString();
+        tokenRepository.save(new VerificationToken(token, propertyId));
+
+        emailService.sendListingConfirmationEmail(ownerEmail, dto.name(), token);
+
         return savedProperty;
     }
+
+    public void confirmProperty(String token) {
+        VerificationToken verificationToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token."));
+
+        Property property = listingRepository.findById(verificationToken.getPropertyId())
+                .orElseThrow(() -> new IllegalArgumentException("Property not found."));
+
+        property.setIsActive(true);
+        listingRepository.save(property);
+
+        tokenRepository.delete(verificationToken);
+    }
+
+
+    public void cancelProperty(String token) {
+        VerificationToken verificationToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token."));
+
+        Property property = listingRepository.findById(verificationToken.getPropertyId())
+                .orElseThrow(() -> new IllegalArgumentException("Property not found."));
+
+        if (property.getHost() != null && property.getHost().getProfileImageUrl() != null) {
+            String profileUrl = property.getHost().getProfileImageUrl();
+
+            if (profileUrl.contains("stayhive/hosts")) {
+                String publicId = extractCloudinaryPublicId(profileUrl);
+                cloudinaryService.deleteFile(publicId);
+            }
+        }
+
+        // 2. CLEANUP: Delete all Property Gallery Images
+        if (property.getImages() != null && property.getImages().getImageUrls() != null) {
+            for (String imageUrl : property.getImages().getImageUrls()) {
+                String publicId = extractCloudinaryPublicId(imageUrl);
+                cloudinaryService.deleteFile(publicId);
+            }
+        }
+
+
+        listingRepository.deleteById(verificationToken.getPropertyId());
+        tokenRepository.delete(verificationToken);
+
+
+    }
+
+    private String extractCloudinaryPublicId(String url) {
+        if (url == null || !url.contains("/upload/")) {
+            return null;
+        }
+        try {
+            // Split at "/upload/"
+            String path = url.split("/upload/")[1];
+
+            // Remove the version tag (e.g., "v1623456789/") if it exists
+            if (path.matches("^v\\d+/.*")) {
+                path = path.replaceFirst("^v\\d+/", "");
+            }
+
+            // Remove the file extension (e.g., ".jpg", ".png")
+            int lastDotIndex = path.lastIndexOf(".");
+            if (lastDotIndex != -1) {
+                path = path.substring(0, lastDotIndex);
+            }
+
+            return path;
+        } catch (Exception e) {
+            System.err.println("Failed to parse Cloudinary URL: " + url);
+            return null;
+        }
+    }
+
+    public List<Property> getPropertiesByHostEmail(String email) {
+        // 1. Resolve the authenticated email string down to the core database User entity
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Host account profile not found for email: " + email));
+
+
+        String hostId = user.getId();
+
+
+        return propertyRepository.findByHostHostId(hostId);
+    }
+
+
+
+    public Property updatePropertyStatus(String propertyId, Boolean isActive) {
+        // 1. Fetch the property from MongoDB or throw a clean 404 error if it doesn't exist
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property listing not found with id: " + propertyId));
+
+        // 2. Mutate the status field inside the entity object
+        property.setIsActive(isActive);
+
+        // 3. Persist the changes back to your 'properties' collection
+        return propertyRepository.save(property);
+    }
+
+    public Property updatePropertyDetails(String id, PropertyUpdateDTO dto) {
+        // 1. Retrieve the existing document from MongoDB
+        Property property = propertyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Property listing not found with id: " + id));
+
+        property.setName(dto.name());
+        property.setSummary(dto.summary());
+        property.setPrice(dto.price());
+        property.setPropertyType(dto.propertyType());
+        property.setRoomType(dto.roomType());
+        property.setAccommodates(dto.accommodates());
+        property.setBedrooms(dto.bedrooms());
+        property.setBathrooms(dto.bathrooms());
+        property.setCancellationPolicy(dto.cancellationPolicy());
+
+        // 3. Sync full incoming array list over existing collections safely
+        if (dto.amenities() != null) {
+            property.setAmenities(new ArrayList<>(dto.amenities()));
+        }
+
+        // 4. Handle nested sub-document update for Address object
+        if (property.getAddress() != null) {
+            property.getAddress().setCity(dto.city());
+
+        }
+
+        // 5. Save the mutated state back to the 'properties' collection
+        return propertyRepository.save(property);
+    }
+
+    public Property saveBlockedDates(String id, List<LocalDate> incomingBlockedDates) {
+
+        Property property = propertyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Property listing not found with id: " + id));
+
+
+        if (property.getAvailability() == null) {
+            property.setAvailability(new Availability());
+        }
+
+
+        // De-duplicate and sort the list before persisting so the DB stays clean.
+        if (incomingBlockedDates != null) {
+            List<LocalDate> distinctSorted = incomingBlockedDates.stream()
+                    .filter(d -> d != null)
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+            property.getAvailability().setBlockedDates(distinctSorted);
+        } else {
+            property.getAvailability().setBlockedDates(new ArrayList<>());
+        }
+
+        return propertyRepository.save(property);
+    }
+
 }

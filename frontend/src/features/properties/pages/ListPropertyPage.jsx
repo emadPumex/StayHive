@@ -31,8 +31,8 @@ const ListPropertyPage = () => {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [data, setData] = useState(INITIAL);
-    const [submitting, setSubmit] = useState(false);
-    const [submitted, setDone] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
     const [errors, setErrors] = useState({});
 
     const set = useCallback((key, val) => {
@@ -98,7 +98,7 @@ const ListPropertyPage = () => {
             return;
         }
 
-        setSubmit(true);
+        setSubmitting(true);
 
         try {
             // 1. Pack the form payload exactly like before
@@ -130,20 +130,18 @@ const ListPropertyPage = () => {
                 });
             }
 
-            // 2. Call your isolated API function!
             await createListing(formData);
 
-            // 3. UI Success flow
-            setSubmit(false);
-            setDone(true);
-            await new Promise((r) => setTimeout(r, 2200));
-            navigate('/');
+
+            setSubmitting(false);
+            setSubmitted(true);
+
 
         } catch (error) {
             // The API layer threw an error, catch it here to update the UI error state
             const backendMessage = error.response?.data?.message || 'Server error. Please try again later.';
             setErrors((prev) => ({...prev, submit: backendMessage}));
-            setSubmit(false);
+            setSubmitting(false);
         }
     };
 

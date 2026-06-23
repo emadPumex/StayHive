@@ -407,8 +407,11 @@ const BecomeHostVerifyPage = () => {
 
                                 <p className="mt-5 text-center text-[11px] text-[#3A3D48]">
                                     Already a host?{' '}
-                                    <Link to="/login" className="text-[#C8FB4C] hover:underline font-medium">
-                                        Sign in
+                                    <Link
+                                        to="/my-properties"
+                                        className="text-[#C8FB4C] hover:underline font-medium"
+                                    >
+                                        Manage your properties
                                     </Link>
                                 </p>
                             </div>
