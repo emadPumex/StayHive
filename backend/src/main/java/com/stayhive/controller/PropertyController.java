@@ -1,13 +1,13 @@
 package com.stayhive.controller;
 
 import com.stayhive.dto.*;
+import com.stayhive.dto.ReviewRequestDTO;
+import com.stayhive.model.Review;
 import com.stayhive.model.property.Property;
 import com.stayhive.service.PropertyService;
-
 import lombok.RequiredArgsConstructor;
-
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -38,12 +38,12 @@ public class PropertyController {
     public ResponseEntity<Page<Property>> getProperties(
             @ModelAttribute ListingFilterParams params,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "6") int size
+            @RequestParam(defaultValue = "6") int limit
 
     ) {
 
 
-        return ResponseEntity.ok(propertyService.getListings(params, PageRequest.of(page, size)));
+        return ResponseEntity.ok(propertyService.getListings(params, PageRequest.of(page, limit)));
     }
 
 
@@ -162,10 +162,80 @@ public class PropertyController {
             @PathVariable String id,
             @RequestBody List<LocalDate> incomingBlockedDates
     ) {
-        // Jackson parses ["2026-06-24", "2026-06-25"] into List<LocalDate> safely
+
         Property updatedProperty = propertyService.saveBlockedDates(id, incomingBlockedDates);
         return ResponseEntity.ok(updatedProperty);
     }
 
+    @PostMapping("/{id}/reviews")
+    public ResponseEntity<?> submitReview(
+            @PathVariable String id,
+            @RequestBody ReviewRequestDTO dto,
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body("Please log in to leave a review.");
+        }
+        if (dto.rating() == null || dto.rating() < 1 || dto.rating() > 5) {
+            return ResponseEntity.badRequest().body("Rating must be between 1 and 5.");
+        }
+        if (dto.comment() == null || dto.comment().isBlank()) {
+            return ResponseEntity.badRequest().body("Comment cannot be empty.");
+        }
+        try {
+            String userEmail = authentication.getName();
+            var review = propertyService.submitReview(id, userEmail, dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(review);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
 
-}
+    @PutMapping("/{id}/reviews/{reviewId}")
+    public ResponseEntity<?> updateReview(
+            @PathVariable String id,
+            @PathVariable String reviewId,
+            @RequestBody ReviewRequestDTO dto,
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body("Please log in.");
+        }
+        if (dto.rating() == null || dto.rating() < 1 || dto.rating() > 5) {
+            return ResponseEntity.badRequest().body("Rating must be between 1 and 5.");
+        }
+        if (dto.comment() == null || dto.comment().isBlank()) {
+            return ResponseEntity.badRequest().body("Comment cannot be empty.");
+        }
+        try {
+            String userEmail = authentication.getName();
+            Review updated = propertyService.updateReview(reviewId, userEmail, dto);
+            return ResponseEntity.ok(updated);
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}/reviews/{reviewId}")
+    public ResponseEntity<?> deleteReview(
+            @PathVariable String id,
+            @PathVariable String reviewId,
+            Authentication authentication
+    ) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body("Please log in.");
+        }
+        try {
+            String userEmail = authentication.getName();
+            propertyService.deleteReview(reviewId, userEmail);
+            return ResponseEntity.noContent().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+
+}

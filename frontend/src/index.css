@@ -39,3 +39,187 @@
 .animate-slide-in {
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ─── Glassmorphism Home Page Animations ─── */
+
+@keyframes fadeUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: rotate(-2deg) translateY(0px); }
+  50%       { transform: rotate(-2deg) translateY(-10px); }
+}
+
+@keyframes shimmerSweep {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 251, 76, 0); }
+  50%       { box-shadow: 0 0 22px 6px rgba(200, 251, 76, 0.18); }
+}
+
+@keyframes orbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(30px, -40px) scale(1.08); }
+  66%       { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(-35px, 30px) scale(1.1); }
+  80%       { transform: translate(25px, -20px) scale(0.92); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(200, 251, 76, 0.15); }
+  50%       { border-color: rgba(200, 251, 76, 0.45); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Utility Classes ─── */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(200, 251, 76, 0.3);
+  transform: translateY(-6px) scale(1.015);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(200, 251, 76, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.glass-card-active {
+  background: rgba(200, 251, 76, 0.06);
+  border: 1px solid rgba(200, 251, 76, 0.25);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(200, 251, 76, 0.1),
+    inset 0 1px 0 rgba(200, 251, 76, 0.08);
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+.glass-card-active:hover {
+  background: rgba(200, 251, 76, 0.1);
+  transform: translateY(-6px) scale(1.015);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(200, 251, 76, 0.2),
+    inset 0 1px 0 rgba(200, 251, 76, 0.15);
+}
+
+.glass-stat {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-stat:hover {
+  background: rgba(200, 251, 76, 0.07);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(200, 251, 76, 0.12);
+}
+
+.glass-feature {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-feature::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(200,251,76,0.04) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.glass-feature:hover::before {
+  opacity: 1;
+}
+
+.glass-feature:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #C8FB4C 0%,
+    #e8ff9a 40%,
+    #C8FB4C 60%,
+    #a8e020 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerSweep 3s linear infinite;
+}
+
+.animate-fade-up {
+  animation: fadeUpIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-float-card {
+  animation: floatCard 5s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.anim-delay-100 { animation-delay: 0.1s; }
+.anim-delay-150 { animation-delay: 0.15s; }
+.anim-delay-200 { animation-delay: 0.2s; }
+.anim-delay-250 { animation-delay: 0.25s; }
+.anim-delay-300 { animation-delay: 0.3s; }
+.anim-delay-350 { animation-delay: 0.35s; }
+.anim-delay-400 { animation-delay: 0.4s; }
+.anim-delay-500 { animation-delay: 0.5s; }
+.anim-delay-600 { animation-delay: 0.6s; }
+.anim-delay-700 { animation-delay: 0.7s; }
+.anim-delay-800 { animation-delay: 0.8s; }
+
+.orb-1 { animation: orbFloat1 12s ease-in-out infinite; }
+.orb-2 { animation: orbFloat2 16s ease-in-out infinite; }

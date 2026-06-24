@@ -20,7 +20,7 @@ public class User {
     private String picture;
 
 
-    // Enforces that only valid, pre-defined providers can be saved
+
     private AuthProvider provider;
 
     // --- NESTED ENUM ---

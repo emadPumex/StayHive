@@ -84,3 +84,33 @@ export const createListing = async (formData) => {
         throw error;
     }
 };
+
+/**
+ * Submit a review for a property. Requires the user to be authenticated.
+ * @param {string} propertyId
+ * @param {{ rating: number, comment: string }} reviewData
+ */
+export const submitReview = async (propertyId, reviewData) => {
+    const response = await apiClient.post(`/properties/${propertyId}/reviews`, reviewData);
+    return response.data;
+};
+
+/**
+ * Update an existing review. Caller must be the review author.
+ * @param {string} propertyId
+ * @param {string} reviewId
+ * @param {{ rating: number, comment: string }} reviewData
+ */
+export const updateReview = async (propertyId, reviewId, reviewData) => {
+    const response = await apiClient.put(`/properties/${propertyId}/reviews/${reviewId}`, reviewData);
+    return response.data;
+};
+
+/**
+ * Delete a review. Caller must be the review author.
+ * @param {string} propertyId
+ * @param {string} reviewId
+ */
+export const deleteReview = async (propertyId, reviewId) => {
+    await apiClient.delete(`/properties/${propertyId}/reviews/${reviewId}`);
+};

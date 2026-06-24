@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
+import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {
     Compass, ShieldCheck, CalendarCheck2, UserCheck, ArrowRight,
     Lock, Shield, Key, Sparkles, Sun, Moon, ArrowLeft, Loader2,
@@ -10,10 +10,14 @@ import authBg from '../../../assets/luxury_stay_auth_bg.png';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [loadingProvider, setLoadingProvider] = useState(null);
     const [glassTheme, setGlassTheme] = useState('dark'); // 'dark' (Obsidian) or 'light' (Alabaster)
     const [animateIn, setAnimateIn] = useState(false);
     const BACKEND_URL = 'http://localhost:8081';
+
+    // Persist any ?redirect= query param so OAuth2RedirectHandler can restore it
+    const redirectPath = searchParams.get('redirect');
 
 
     useEffect(() => {
@@ -28,6 +32,12 @@ const LoginPage = () => {
         if (provider === 'Google') {
             setLoadingProvider('Google');
             toast.loading('Redirecting to Google...', {id: 'auth-toast'});
+
+            if (redirectPath) {
+                localStorage.setItem('auth_redirect', redirectPath);
+            } else {
+                localStorage.removeItem('auth_redirect');
+            }
             window.location.href = `${BACKEND_URL}/oauth2/authorization/google`;
             return;
         }

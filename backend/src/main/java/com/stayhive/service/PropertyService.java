@@ -2,6 +2,7 @@ package com.stayhive.service;
 
 
 import com.stayhive.dto.*;
+import com.stayhive.dto.ReviewRequestDTO;
 import com.stayhive.model.Review;
 import com.stayhive.model.User;
 import com.stayhive.model.property.*;
@@ -21,12 +22,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.Map;
-
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -355,6 +357,88 @@ public class PropertyService {
         }
 
         return propertyRepository.save(property);
+    }
+
+    public Review submitReview(String propertyId, String userEmail, ReviewRequestDTO dto) {
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found: " + propertyId));
+
+        // Hosts cannot review their own property
+        if (property.getHost() != null && user.getId().equals(property.getHost().getHostId())) {
+            throw new IllegalArgumentException("Hosts cannot review their own property.");
+        }
+
+        Review review = new Review();
+        review.setPropertyId(propertyId);
+        review.setUserId(user.getId());
+
+        String reviewerName = (user.getName() != null && !user.getName().isBlank())
+                ? user.getName()
+                : userEmail.split("@")[0];
+        review.setReviewerName(reviewerName);
+        review.setReviewerProfileImage(user.getPicture());
+        review.setRating(dto.rating());
+        review.setComment(dto.comment());
+        review.setCreatedAt(java.time.LocalDateTime.now());
+
+        Review saved = reviewRepository.save(review);
+
+        recalculatePropertyStats(propertyId);
+        return saved;
+    }
+
+    public Review updateReview(String reviewId, String userEmail, ReviewRequestDTO dto) {
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("Review not found: " + reviewId));
+
+        if (!review.getUserId().equals(user.getId())) {
+            throw new AccessDeniedException("You can only edit your own reviews.");
+        }
+
+        review.setRating(dto.rating());
+        review.setComment(dto.comment());
+        Review saved = reviewRepository.save(review);
+
+        recalculatePropertyStats(review.getPropertyId());
+        return saved;
+    }
+
+    public void deleteReview(String reviewId, String userEmail) {
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("Review not found: " + reviewId));
+
+        if (!review.getUserId().equals(user.getId())) {
+            throw new AccessDeniedException("You can only delete your own reviews.");
+        }
+
+        String propertyId = review.getPropertyId();
+        reviewRepository.deleteById(reviewId);
+        recalculatePropertyStats(propertyId);
+    }
+
+    private void recalculatePropertyStats(String propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found: " + propertyId));
+        List<Review> allReviews = reviewRepository.findByPropertyId(propertyId);
+        double avg = allReviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+        property.setAverageRating(Math.round(avg * 10.0) / 10.0);
+        property.setReviewCount(allReviews.size());
+        propertyRepository.save(property);
     }
 
 }

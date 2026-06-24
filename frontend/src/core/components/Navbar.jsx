@@ -44,7 +44,7 @@ const Navbar = () => {
         if (loading) return; // Prevent action while checking session
         if (!user) {
             e.preventDefault();
-            navigate('/login');
+            navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`);
         }
     };
 
@@ -125,8 +125,9 @@ const Navbar = () => {
                                 </button>
                             </div>
                         ) : (
-                            <Link to="/login"
-                                  className="px-4 py-2 bg-[#C8FB4C] text-[#0F1117] text-[13px] font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center">
+                            <Link
+                                to={`/login?redirect=${encodeURIComponent(location.pathname)}`}
+                                className="px-4 py-2 bg-[#C8FB4C] text-[#0F1117] text-[13px] font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center">
                                 Sign in
                             </Link>
                         )}
@@ -216,7 +217,7 @@ const Navbar = () => {
                             </div>
                         ) : (
                             <Link
-                                to="/login"
+                                to={`/login?redirect=${encodeURIComponent(location.pathname)}`}
                                 onClick={() => setIsOpen(false)}
                                 className="w-full py-2.5 bg-[#C8FB4C] text-[#0F1117] text-sm font-bold rounded-lg hover:opacity-90 transition-opacity block text-center"
                             >

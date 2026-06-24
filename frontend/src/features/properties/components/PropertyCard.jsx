@@ -22,7 +22,7 @@ const PropertyCard = ({property}) => {
 
     const rating = reviewScores?.reviewScoresRating;
     const isSuperhost = host?.hostIsSuperhost;
-    const imageUrl = images?.pictureUrl || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80';
+    const imageUrl = images?.coverImageUrl || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80';
 
     return (
         <Link to={`/property/${id}`} className="block group">
@@ -74,7 +74,7 @@ const PropertyCard = ({property}) => {
                     <div className="flex items-center justify-between">
             <span className="flex items-center gap-1 text-xs text-[#8A8FA8]">
               <MapPin className="w-3.5 h-3.5 text-[#C8FB4C] shrink-0"/>
-                {address?.market}, {address?.country}
+                {address?.city}, {address?.country}
             </span>
                         {rating && (
                             <span

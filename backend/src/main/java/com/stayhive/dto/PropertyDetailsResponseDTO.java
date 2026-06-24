@@ -8,6 +8,6 @@ import java.util.List;
 public record PropertyDetailsResponseDTO(
 
         Property property,
-        List<Review> review
+        List<Review> reviews
 ) {
 }
