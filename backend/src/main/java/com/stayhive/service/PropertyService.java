@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
@@ -69,30 +70,33 @@ public class PropertyService {
 
         // Enums — stored as string in MongoDB
         if (hasVal(p.getPropertyType())) criteria.add(Criteria.where("propertyType").is(p.getPropertyType()));
-        if (hasVal(p.getRoomType())) criteria.add(Criteria.where("roomType").is(p.getRoomType()));
+        if (hasVal(p.getRoomType())) criteria.add(Criteria.where("roomCategories.roomType").is(p.getRoomType()));
         if (hasVal(p.getCancellationPolicy()))
-            criteria.add(Criteria.where("cancellationPolicy").is(p.getCancellationPolicy()));
+            criteria.add(Criteria.where("cancellationPolicy.type").is(p.getCancellationPolicy()));
 
-        if (p.getMinPrice() != null) criteria.add(Criteria.where("price").gte(p.getMinPrice()));
-        if (p.getMaxPrice() != null) criteria.add(Criteria.where("price").lte(p.getMaxPrice()));
-        if (p.getMinAccommodates() != null) criteria.add(Criteria.where("accommodates").gte(p.getMinAccommodates()));
-        if (p.getMinBedrooms() != null) criteria.add(Criteria.where("bedrooms").gte(p.getMinBedrooms()));
-        if (p.getMinBathrooms() != null) criteria.add(Criteria.where("bathrooms").gte(p.getMinBathrooms()));
+        if (p.getMinPrice() != null) criteria.add(Criteria.where("roomCategories.basePrice").gte(p.getMinPrice()));
+        if (p.getMaxPrice() != null) criteria.add(Criteria.where("roomCategories.basePrice").lte(p.getMaxPrice()));
+        if (p.getMinAccommodates() != null) criteria.add(Criteria.where("roomCategories.accommodates").gte(p.getMinAccommodates()));
+        if (p.getMinBedrooms() != null) criteria.add(Criteria.where("roomCategories.bedCount").gte(p.getMinBedrooms()));
+        if (p.getMinBathrooms() != null) criteria.add(Criteria.where("roomCategories.bathrooms").gte(p.getMinBathrooms()));
 
         if (Boolean.TRUE.equals(p.getIsSuperhost()))
             criteria.add(Criteria.where("host.hostIsSuperhost").is(true));
 
         if (p.getMinRating() != null)
-            criteria.add(Criteria.where("averageRating").gte(p.getMinRating()));  // ← was reviewScores.reviewScoresRating
+            criteria.add(Criteria.where("averageRating").gte(p.getMinRating()));
 
         if (p.getAmenities() != null && !p.getAmenities().isEmpty())
-            criteria.add(Criteria.where("amenities").all(p.getAmenities()));
+            criteria.add(Criteria.where("propertyAmenities.name").all(p.getAmenities()));
 
         // checkIn/checkOut — exclude properties with blocked dates overlapping range
         if (p.getCheckIn() != null && p.getCheckOut() != null) {
-            criteria.add(Criteria.where("availability.blockedDates").not().elemMatch(
-                    new Criteria().gte(p.getCheckIn()).lte(p.getCheckOut())
-            ));
+            Criteria overlapCriteria = new Criteria().andOperator(
+                    Criteria.where("blockType").is("SPECIFIC_DATES"),
+                    Criteria.where("startDate").lte(p.getCheckOut()),
+                    Criteria.where("endDate").gte(p.getCheckIn())
+            );
+            criteria.add(Criteria.where("propertyBlockRules").not().elemMatch(overlapCriteria));
         }
 
         Query query = new Query();
@@ -139,51 +143,50 @@ public class PropertyService {
         Property property = listingRepository.findById(id).orElse(null);
 
 
-        // 2. Fetch all reviews tied to this specific property ID
+
 
         List<Review> reviews = reviewRepository.findByPropertyId(id);
 
-        // 3. Combine them into the unified presentation DTO
+
         return new PropertyDetailsResponseDTO(property, reviews);
     }
 
 
-    public Property initiatePropertyCreation(PropertyFormDTO dto, String ownerEmail) {
-
+    public Property initiatePropertyCreation(PropertyDataDTO dto, List<MultipartFile> images, MultipartFile profileImageUrl, Map<Integer, List<MultipartFile>> roomImagesMap, String ownerEmail) {
 
         User user = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new RuntimeException("Logged-in account not found for: " + ownerEmail));
 
-        Host host = Host.builder()
-                .hostId(user.getId())       // Store the verified User ID inside the embedded host block
-                .hostName(dto.hostName())
-                .build();
-        if (dto.profileImageUrl() != null && !dto.profileImageUrl().isEmpty()) {
-            host.setProfileImageUrl(cloudinaryService.uploadFile(dto.profileImageUrl(), "stayhive/hosts"));
+        Host host = dto.host();
+        if (host == null) {
+            host = Host.builder().build();
+        }
+        host.setHostId(user.getId());       // Store the verified User ID inside the embedded host block
+        if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+            host.setProfileImageUrl(cloudinaryService.uploadFile(profileImageUrl, "stayhive/hosts"));
         }
 
-        Address address = Address.builder()
-                .country(dto.country()).state(dto.state()).city(dto.city())
-                .latitude(dto.latitude()).longitude(dto.longitude())
-                .build();
-
         Property property = Property.builder()
-                .name(dto.name()).propertyType(dto.propertyType()).roomType(dto.roomType())
-                .price(dto.price()).accommodates(dto.accommodates()).bedrooms(dto.bedrooms())
-                .bathrooms(dto.bathrooms()).summary(dto.summary()).amenities(dto.amenities())
-                .cancellationPolicy(dto.cancellationPolicy())
-                .host(host).address(address)
+                .name(dto.name())
+                .propertyType(dto.propertyType())
+                .summary(dto.summary())
+                .host(host)
+                .address(dto.address())
+                .roomCategories(dto.roomCategories() != null ? dto.roomCategories() : new ArrayList<>())
+                .cancellationPolicy(dto.cancellationPolicy() != null ? dto.cancellationPolicy() : new CancellationPolicy())
+                .propertyAmenities(dto.propertyAmenities() != null ? dto.propertyAmenities() : new ArrayList<>())
+                .propertyBlockRules(dto.propertyBlockRules() != null ? dto.propertyBlockRules() : new ArrayList<>())
                 .isActive(false)
                 .build();
 
         Property savedProperty = listingRepository.save(property);
         String propertyId = savedProperty.getId();
 
-        if (dto.images() != null && !dto.images().isEmpty()) {
+        if (images != null && !images.isEmpty()) {
             List<String> uploadedGalleryUrls = new ArrayList<>();
             String folderStructure = "stayhive/listings/" + propertyId;
 
-            for (MultipartFile imgFile : dto.images()) {
+            for (MultipartFile imgFile : images) {
                 if (imgFile != null && !imgFile.isEmpty()) {
                     uploadedGalleryUrls.add(cloudinaryService.uploadFile(imgFile, folderStructure));
                 }
@@ -193,10 +196,33 @@ public class PropertyService {
                 savedProperty.setImages(Image.builder()
                         .coverImageUrl(uploadedGalleryUrls.get(0))
                         .imageUrls(uploadedGalleryUrls).build());
-                listingRepository.save(savedProperty);
             }
         }
 
+        if (roomImagesMap != null && !roomImagesMap.isEmpty()) {
+            for (Map.Entry<Integer, List<MultipartFile>> entry : roomImagesMap.entrySet()) {
+                int roomIndex = entry.getKey();
+                if (roomIndex < savedProperty.getRoomCategories().size()) {
+                    List<String> rUrls = new ArrayList<>();
+                    String rFolder = "stayhive/listings/" + propertyId + "/rooms/" + dto.roomCategories().get(roomIndex).getId();
+                    for (MultipartFile f : entry.getValue()) {
+                        if (f != null && !f.isEmpty()) {
+                            rUrls.add(cloudinaryService.uploadFile(f, rFolder));
+                        }
+                    }
+                    if (!rUrls.isEmpty()) {
+                        savedProperty.getRoomCategories().get(roomIndex).setImages(
+                                Image.builder().coverImageUrl(rUrls.get(0)).imageUrls(rUrls).build()
+                        );
+                    }
+                }
+            }
+        }
+
+        // Always save property once again if images were attached to property or rooms
+        if ((images != null && !images.isEmpty()) || (roomImagesMap != null && !roomImagesMap.isEmpty())) {
+            listingRepository.save(savedProperty);
+        }
 
         String token = UUID.randomUUID().toString();
         tokenRepository.save(new VerificationToken(token, propertyId));
@@ -240,7 +266,9 @@ public class PropertyService {
         if (property.getImages() != null && property.getImages().getImageUrls() != null) {
             for (String imageUrl : property.getImages().getImageUrls()) {
                 String publicId = extractCloudinaryPublicId(imageUrl);
-                cloudinaryService.deleteFile(publicId);
+                if (publicId != null) {
+                    cloudinaryService.deleteFile(publicId);
+                }
             }
         }
 
@@ -310,17 +338,53 @@ public class PropertyService {
 
         property.setName(dto.name());
         property.setSummary(dto.summary());
-        property.setPrice(dto.price());
         property.setPropertyType(dto.propertyType());
-        property.setRoomType(dto.roomType());
-        property.setAccommodates(dto.accommodates());
-        property.setBedrooms(dto.bedrooms());
-        property.setBathrooms(dto.bathrooms());
-        property.setCancellationPolicy(dto.cancellationPolicy());
+
+        // Update / create default room category
+        List<RoomCategory> categories = property.getRoomCategories();
+        if (categories == null || categories.isEmpty()) {
+            categories = new ArrayList<>();
+            categories.add(RoomCategory.builder().id("STANDARD_ROOM").name("Standard Room").build());
+        }
+        RoomCategory defaultRoom = categories.get(0);
+        if (dto.price() != null) defaultRoom.setBasePrice(dto.price());
+        if (dto.roomType() != null) {
+            try {
+                defaultRoom.setRoomType(dto.roomType());
+            } catch (Exception ignored) {}
+        }
+        if (dto.accommodates() != null) defaultRoom.setAccommodates(dto.accommodates());
+        if (dto.bedroomCount() != null) defaultRoom.setBedroomCount(dto.bedroomCount());
+        if (dto.bedrooms() != null) defaultRoom.setBedCount(dto.bedrooms());
+        if (dto.bathrooms() != null) defaultRoom.setBathrooms(dto.bathrooms());
+        property.setRoomCategories(categories);
+
+        // Update cancellation policy
+        CancellationPolicy policy = property.getCancellationPolicy();
+        if (policy == null) {
+            policy = new CancellationPolicy();
+        }
+        if (dto.cancellationPolicy() != null) {
+            try {
+                CancellationPolicy.PolicyType pType = CancellationPolicy.PolicyType.valueOf(dto.cancellationPolicy());
+                policy.setType(pType);
+                policy.setName(dto.cancellationPolicy() + " Cancellation Policy");
+                policy.setDescription("Custom cancellation policy: " + dto.cancellationPolicy());
+            } catch (Exception ignored) {}
+        }
+        property.setCancellationPolicy(policy);
 
         // 3. Sync full incoming array list over existing collections safely
         if (dto.amenities() != null) {
-            property.setAmenities(new ArrayList<>(dto.amenities()));
+            List<Amenity> propertyAmenities = new ArrayList<>();
+            for (String aName : dto.amenities()) {
+                propertyAmenities.add(Amenity.builder()
+                        .id(aName.toLowerCase().replaceAll("[^a-z0-9]", "_"))
+                        .name(aName)
+                        .category("GENERAL")
+                        .build());
+            }
+            property.setPropertyAmenities(propertyAmenities);
         }
 
         // 4. Handle nested sub-document update for Address object
@@ -338,23 +402,30 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property listing not found with id: " + id));
 
-
-        if (property.getAvailability() == null) {
-            property.setAvailability(new Availability());
-        }
-
-
-        // De-duplicate and sort the list before persisting so the DB stays clean.
-        if (incomingBlockedDates != null) {
-            List<LocalDate> distinctSorted = incomingBlockedDates.stream()
-                    .filter(d -> d != null)
-                    .distinct()
-                    .sorted()
-                    .collect(Collectors.toList());
-            property.getAvailability().setBlockedDates(distinctSorted);
+        List<BlockRule> rules = property.getPropertyBlockRules();
+        if (rules == null) {
+            rules = new ArrayList<>();
         } else {
-            property.getAvailability().setBlockedDates(new ArrayList<>());
+            rules = new ArrayList<>(rules);
+            // Remove previous manual host blocks
+            rules.removeIf(rule -> "Host Manual Block".equals(rule.getReason()));
         }
+
+        // Add new blocks
+        if (incomingBlockedDates != null) {
+            for (LocalDate date : incomingBlockedDates) {
+                if (date != null) {
+                    rules.add(BlockRule.builder()
+                            .id(UUID.randomUUID().toString())
+                            .reason("Host Manual Block")
+                            .blockType(BlockRule.BlockType.SPECIFIC_DATES)
+                            .startDate(date)
+                            .endDate(date)
+                            .build());
+                }
+            }
+        }
+        property.setPropertyBlockRules(rules);
 
         return propertyRepository.save(property);
     }
@@ -383,7 +454,7 @@ public class PropertyService {
         review.setReviewerProfileImage(user.getPicture());
         review.setRating(dto.rating());
         review.setComment(dto.comment());
-        review.setCreatedAt(java.time.LocalDateTime.now());
+        review.setCreatedAt(Instant.now());
 
         Review saved = reviewRepository.save(review);
 

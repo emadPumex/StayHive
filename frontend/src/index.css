@@ -223,3 +223,9 @@
 
 .orb-1 { animation: orbFloat1 12s ease-in-out infinite; }
 .orb-2 { animation: orbFloat2 16s ease-in-out infinite; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #0F1117; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #1A1D26; border-radius: 99px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3A3D48; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

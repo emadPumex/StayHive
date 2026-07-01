@@ -6,18 +6,7 @@ import { submitReview, updateReview, deleteReview } from '../../api/propertyApi'
 import ReviewCard from './ReviewCard';
 import ReviewForm from './ReviewForm';
 
-/**
- * ReviewsSection owns the local review list and all review interaction state.
- *
- * Props:
- *  initialReviews  — reviews array from the page load
- *  averageRating   — numeric average
- *  hasReviews      — boolean
- *  formattedRating — e.g. "4.3"
- *  user            — auth user object (null if unauthenticated)
- *  propertyId      — string
- *  propertyHostId  — host.hostId string, used to block host self-reviews
- */
+
 const ReviewsSection = ({
     initialReviews = [],
     averageRating = 0,

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PropertyDescription = ({ summary, roomType }) => (
+const PropertyDescription = ({summary, roomType}) => (
     <div className="bg-[#0F1117] border border-[#1A1D26] p-6 rounded-2xl space-y-3">
         <h3 className="text-base font-black text-[#FAFAF8]">About this stay</h3>
         <p className="text-sm text-[#8A8FA8] leading-relaxed">

@@ -2,11 +2,26 @@ import {CheckCircle2, AlertCircle} from 'lucide-react';
 import {AMENITY_LIST, T} from './constants';
 
 const Step3 = ({data, set}) => {
-    const toggle = (id) => {
-        const cur = data.amenities || [];
-        set('amenities', cur.includes(id) ? cur.filter((a) => a !== id) : [...cur, id]);
+    const toggle = (amenityDef) => {
+        const cur = data.propertyAmenities || [];
+        const exists = cur.find(a => a.id === amenityDef.id);
+        
+        if (exists) {
+            set('propertyAmenities', cur.filter(a => a.id !== amenityDef.id));
+        } else {
+            set('propertyAmenities', [...cur, { id: amenityDef.id, name: amenityDef.label, category: amenityDef.category }]);
+        }
     };
-    const count = (data.amenities || []).length;
+    
+    const count = (data.propertyAmenities || []).length;
+
+    // Group amenities by category
+    const grouped = AMENITY_LIST.reduce((acc, amenity) => {
+        const cat = amenity.category || 'General';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(amenity);
+        return acc;
+    }, {});
 
     return (
         <div className="animate-fadeUp">
@@ -22,32 +37,40 @@ const Step3 = ({data, set}) => {
                 </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" role="group" aria-label="Amenities">
-                {AMENITY_LIST.map(({id, icon: Icon, label}) => {
-                    const on = (data.amenities || []).includes(id);
-                    return (
-                        <button
-                            key={id}
-                            type="button"
-                            onClick={() => toggle(id)}
-                            aria-pressed={on}
-                            style={{
-                                background: on ? T.limePale : T.bg700,
-                                borderColor: on ? T.lime : T.border,
-                            }}
-                            className="flex flex-col items-start gap-3 p-4 rounded-2xl border-2 text-left
-                transition-all duration-150 focus-visible:outline-none focus-visible:ring-2"
-                        >
-                            <div style={{background: on ? T.limePale : T.bg600}}
-                                 className="w-9 h-9 rounded-xl flex items-center justify-center">
-                                <Icon className="w-4.5 h-4.5" style={{color: on ? T.lime : T.muted}}
-                                      aria-hidden="true"/>
-                            </div>
-                            <span style={{color: on ? T.lime : T.text}}
-                                  className="text-xs font-semibold leading-tight">{label}</span>
-                        </button>
-                    );
-                })}
+            <div className="flex flex-col gap-8">
+                {Object.entries(grouped).map(([categoryName, amenities]) => (
+                    <div key={categoryName}>
+                        <h3 style={{color: T.text}} className="text-sm font-semibold mb-3">{categoryName}</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" role="group" aria-label={`${categoryName} amenities`}>
+                            {amenities.map((def) => {
+                                const on = (data.propertyAmenities || []).some(a => a.id === def.id);
+                                const Icon = def.icon;
+                                return (
+                                    <button
+                                        key={def.id}
+                                        type="button"
+                                        onClick={() => toggle(def)}
+                                        aria-pressed={on}
+                                        style={{
+                                            background: on ? T.limePale : T.bg700,
+                                            borderColor: on ? T.lime : T.border,
+                                        }}
+                                        className="flex flex-col items-start gap-3 p-4 rounded-2xl border-2 text-left
+                            transition-all duration-150 focus-visible:outline-none focus-visible:ring-2"
+                                    >
+                                        <div style={{background: on ? T.limePale : T.bg600}}
+                                             className="w-9 h-9 rounded-xl flex items-center justify-center">
+                                            <Icon className="w-4.5 h-4.5" style={{color: on ? T.lime : T.muted}}
+                                                  aria-hidden="true"/>
+                                        </div>
+                                        <span style={{color: on ? T.lime : T.text}}
+                                              className="text-xs font-semibold leading-tight">{def.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {count === 0 && (

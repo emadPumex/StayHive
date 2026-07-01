@@ -69,6 +69,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         cookie.setHttpOnly(true);
         cookie.setSecure(false); // Set to false for local HTTP testing; change to true in production HTTPS
         cookie.setPath("/");
+        cookie.setDomain("localhost");
         cookie.setMaxAge(24 * 60 * 60);
         cookie.setAttribute("SameSite", "Lax");
 

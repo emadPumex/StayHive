@@ -7,8 +7,14 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @Builder
 @Data
@@ -22,21 +28,7 @@ public class Property {
 
     private String name;
 
-    private PropertyType propertyType;
-
-    private RoomType roomType;
-
-    private Double price;
-
-    private Integer accommodates;
-
-    private Integer bedrooms;
-
-    private Integer bathrooms;
-
-    private List<String> amenities;
-
-    private CancellationPolicy cancellationPolicy;
+    private PropertyType propertyType; // e.g., HOTEL, RESORT, VILLA, APARTMENT
 
     private String summary;
 
@@ -44,51 +36,36 @@ public class Property {
 
     private Address address;
 
-    private Availability availability;
-
     private Image images;
 
+    // Shared features at the property level (e.g., Valet Parking, Gym, Central Pool)
+    private List<Amenity> propertyAmenities;
+
+    // Contains the multi-tiered refund calculation timeline matrix
+    private CancellationPolicy cancellationPolicy;
+
+    // Physical bookable inventories (e.g., Deluxe Room, Executive Suite, Private Pool Villa)
+    private List<RoomCategory> roomCategories;
+
+    // Advanced operational blocks applied to the whole property (e.g., Seasonal Closure)
+    private List<BlockRule> propertyBlockRules;
+
+    // Metadata, Reviews, and Status tracking
     private Double averageRating;
 
     private Integer reviewCount;
 
     private Boolean isActive;
 
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
+
 
 
     public enum PropertyType {
-
-        APARTMENT,
-
-        HOUSE,
-
-        VILLA,
-
-        CABIN,
-
-        COTTAGE,
-
-        HOTEL,
-
-        RESORT
+        HOTEL, RESORT, VILLA, APARTMENT, HOUSE, CABIN, COTTAGE, HOSTEL
     }
 
-    public enum RoomType {
 
-        ENTIRE_PLACE,
-
-        PRIVATE_ROOM,
-
-        SHARED_ROOM
-    }
-
-    public enum CancellationPolicy {
-        FLEXIBLE,
-        MODERATE,
-        STRICT,
-        SUPER_STRICT
-    }
 }

@@ -182,3 +182,16 @@
     border-right-color: var(--border);
   }
 }
+.react-datepicker {
+  background-color: #1A1D26 !important;
+  border: 1px solid #2A2D38 !important;
+  color: #FAFAF8 !important;
+}
+.react-datepicker__header {
+  background-color: #0F1117 !important;
+  border-bottom: 1px solid #2A2D38 !important;
+}
+.react-datepicker__day--disabled {
+  color: #3A3D48 !important; /* Muted color for blocked dates */
+  text-decoration: line-through;
+}

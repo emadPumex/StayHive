@@ -8,20 +8,21 @@ import Step1 from '../components/list-property/Step1';
 import Step2 from '../components/list-property/Step2';
 import Step3 from '../components/list-property/Step3';
 import Step4 from '../components/list-property/Step4';
-import Step5 from '../components/list-property/Step5';
-import Step6 from '../components/list-property/Step6';
 import SuccessScreen from '../components/list-property/SuccessScreen';
 import {createListing} from '../api/propertyApi';
 /* ─────────────────────────────────────────
    Initial state
 ───────────────────────────────────────── */
 const INITIAL = {
-    propertyType: '', roomType: '', name: '', summary: '', price: '', cancellationPolicy: '',
-    accommodates: 2, bedrooms: 1, bathrooms: 1,
-    amenities: [],
-    country: '', state: '', city: '', latitude: '', longitude: '',
-    propertyImages: [],
     hostName: '', hostAvatarPreview: '', hostAvatarFile: null,
+    address: { country: '', state: '', city: '', latitude: '', longitude: '' },
+    propertyAmenities: [],
+    cancellationPolicy: { type: 'FLEXIBLE', name: 'Flexible Cancellation Policy', description: 'Standard flexible cancellation policy', windows: [] },
+    roomCategories: [],
+    propertyType: '',
+    name: '',
+    summary: '',
+    propertyImages: [],
 };
 
 /* ─────────────────────────────────────────
@@ -36,7 +37,10 @@ const ListPropertyPage = () => {
     const [errors, setErrors] = useState({});
 
     const set = useCallback((key, val) => {
-        setData((d) => ({...d, [key]: val}));
+        setData((d) => ({
+            ...d,
+            [key]: typeof val === 'function' ? val(d[key]) : val  // ← add this
+        }));
         setErrors((e) => {
             const n = {...e};
             delete n[key];
@@ -48,27 +52,33 @@ const ListPropertyPage = () => {
         const e = {};
         if (step === 1) {
             if (!data.propertyType) e.propertyType = 'Select a property type.';
-            if (!data.roomType) e.roomType = 'Select a room type.';
             if (!data.name.trim()) e.name = 'Listing name is required.';
             if (!data.summary.trim()) e.summary = 'Description is required.';
-            if (!data.price) e.price = 'Set a price per night.';
-            if (!data.cancellationPolicy) e.cancellationPolicy = 'Select a cancellation policy.';
+            if (!data.address.country) e.country = 'Select a country.';
+            if (!data.address.city) e.city = 'Enter a city.';
+            if (!data.address.state) e.state = 'Enter a state.';
+            if (!data.hostName.trim()) e.hostName = 'Host name is required.';
+        }
+        if (step === 2) {
+            if (!data.cancellationPolicy.type) e.cancellationPolicy = 'Select a policy type.';
         }
         if (step === 4) {
-            if (!data.country) e.country = 'Select a country.';
-            if (!data.city) e.city = 'Enter a city.';
-            if (!data.state) e.state = 'Enter a state.';
+            if (!data.roomCategories || data.roomCategories.length === 0) {
+                e.roomCategories = 'At least one room category is required.';
+            } else {
+                data.roomCategories.forEach((room, index) => {
+                    if (!room.basePrice || room.basePrice <= 0) e[`roomPrice_${index}`] = 'Valid price required.';
+                });
+            }
         }
         return e;
     };
 
     const canNext = () => {
-        if (step === 1) return data.propertyType && data.roomType && data.name.trim() && data.summary.trim() && data.price && data.cancellationPolicy;
-        if (step === 2) return data.accommodates >= 1;
+        if (step === 1) return data.propertyType && data.name.trim() && data.summary.trim() && data.address.country && data.address.city && data.address.state && data.hostName.trim();
+        if (step === 2) return !!data.cancellationPolicy.type;
         if (step === 3) return true;
-        if (step === 4) return data.country && data.city && data.state;
-        if (step === 5) return (data.propertyImages || []).length >= 3;
-        if (step === 6) return data.hostName.trim();
+        if (step === 4) return data.roomCategories?.length > 0;
         return true;
     };
 
@@ -78,7 +88,7 @@ const ListPropertyPage = () => {
             setErrors(e);
             return;
         }
-        if (step < 6) {
+        if (step < 4) {
             setStep((s) => s + 1);
             window.scrollTo({top: 0, behavior: 'smooth'});
         }
@@ -101,45 +111,64 @@ const ListPropertyPage = () => {
         setSubmitting(true);
 
         try {
-            // 1. Pack the form payload exactly like before
             const formData = new FormData();
-            formData.append('name', data.name);
-            formData.append('propertyType', data.propertyType);
-            formData.append('roomType', data.roomType);
-            formData.append('price', data.price);
-            formData.append('accommodates', data.accommodates);
-            formData.append('bedrooms', data.bedrooms);
-            formData.append('bathrooms', data.bathrooms);
-            formData.append('cancellationPolicy', data.cancellationPolicy);
-            formData.append('summary', data.summary);
-            formData.append('hostName', data.hostName);
+
+            // Build the structured JSON payload matching PropertyDataDTO
+            const payload = {
+                name: data.name,
+                propertyType: data.propertyType,
+                summary: data.summary,
+                host: {
+                    hostName: data.hostName,
+                    profileImageUrl: data.hostAvatarUrl || null
+                },
+                address: data.address,
+                propertyAmenities: data.propertyAmenities || [],
+                cancellationPolicy: data.cancellationPolicy,
+                roomCategories: (data.roomCategories || []).map(({ images, ...rest }) => ({
+                    ...rest,
+                    images: null   // ← strip JS file objects; files go via roomImages_N parts
+                })),
+                propertyBlockRules: []
+            };
+
+
+            formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+
+            // Append profile binary image file
             if (data.hostAvatarFile) {
                 formData.append('profileImageUrl', data.hostAvatarFile);
             }
-            formData.append('country', data.country);
-            formData.append('state', data.state);
-            formData.append('city', data.city);
-            formData.append('latitude', data.latitude || '');
-            formData.append('longitude', data.longitude || '');
 
-            data.amenities.forEach(amenity => formData.append('amenities', amenity));
-
+            // Append listing binary image files
             if (data.propertyImages) {
                 data.propertyImages.forEach((imgObj) => {
-                    formData.append('images', imgObj.file);
+                    if (imgObj.file) {
+                        formData.append('images', imgObj.file);
+                    }
+                });
+            }
+
+            if (data.roomCategories) {
+                data.roomCategories.forEach((room, index) => {
+                    if (room.images) {
+                        room.images.forEach((imgObj) => {
+                            if (imgObj.file) {
+                                formData.append(`roomImages_${index}`, imgObj.file);
+                            }
+                        });
+                    }
                 });
             }
 
             await createListing(formData);
 
-
             setSubmitting(false);
             setSubmitted(true);
 
-
         } catch (error) {
-            // The API layer threw an error, catch it here to update the UI error state
-            const backendMessage = error.response?.data?.message || 'Server error. Please try again later.';
+            // Will catch clean 401, 400, or 500 responses without blowing up CORS rules
+            const backendMessage = error.response?.data?.message || 'Server error or session expired. Please try again later.';
             setErrors((prev) => ({...prev, submit: backendMessage}));
             setSubmitting(false);
         }
@@ -214,11 +243,9 @@ const ListPropertyPage = () => {
                         <StepBar current={step}/>
 
                         {step === 1 && <Step1 data={data} set={set} errors={errors}/>}
-                        {step === 2 && <Step2 data={data} set={set}/>}
+                        {step === 2 && <Step2 data={data} set={set} errors={errors}/>}
                         {step === 3 && <Step3 data={data} set={set}/>}
                         {step === 4 && <Step4 data={data} set={set} errors={errors}/>}
-                        {step === 5 && <Step5 data={data} set={set}/>}
-                        {step === 6 && <Step6 data={data} set={set}/>}
                     </div>
 
                     {/* Navigation */}
@@ -248,7 +275,7 @@ const ListPropertyPage = () => {
                             ))}
                         </div>
 
-                        {step < 6 ? (
+                        {step < 4 ? (
                             <button
                                 type="button"
                                 onClick={next}

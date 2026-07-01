@@ -2,7 +2,8 @@ import {
     Home, BedDouble, Sparkles, MapPin, Camera, User,
     Building2, Waves, Castle, TreePine, Wifi, Tv, Car,
     Wind, Utensils, WashingMachine, Dumbbell, Coffee,
-    ShieldCheck, Flame, PawPrint, Bike
+    ShieldCheck, Flame, PawPrint, Bike,
+    Laptop, Bath, Lock
 } from 'lucide-react';
 
 export const T = {
@@ -22,12 +23,10 @@ export const T = {
 };
 
 export const STEPS = [
-    {id: 1, label: 'Property', icon: Home},
-    {id: 2, label: 'Rooms', icon: BedDouble},
+    {id: 1, label: 'Core Info', icon: Home},
+    {id: 2, label: 'Policies', icon: ShieldCheck},
     {id: 3, label: 'Amenities', icon: Sparkles},
-    {id: 4, label: 'Location', icon: MapPin},
-    {id: 5, label: 'Photos', icon: Camera},
-    {id: 6, label: 'Host', icon: User},
+    {id: 4, label: 'Rooms', icon: BedDouble},
 ];
 
 export const PROPERTY_TYPES = [
@@ -54,26 +53,53 @@ export const CANCELLATION_POLICIES = [
 ];
 
 export const AMENITY_LIST = [
-    {id: 'Wifi', icon: Wifi, label: 'WiFi'},
-    {id: 'TV', icon: Tv, label: 'Smart TV'},
-    {id: 'Free parking', icon: Car, label: 'Free parking'},
-    {id: 'Air conditioning', icon: Wind, label: 'Air conditioning'},
-    {id: 'Kitchen', icon: Utensils, label: 'Kitchen'},
-    {id: 'Washing machine', icon: WashingMachine, label: 'Washer/Dryer'},
-    {id: 'Gym', icon: Dumbbell, label: 'Gym access'},
-    {id: 'Coffee maker', icon: Coffee, label: 'Coffee maker'},
-    {id: 'Pool', icon: Waves, label: 'Pool'},
-    {id: 'Fire extinguisher', icon: ShieldCheck, label: 'Fire safety'},
-    {id: 'Fireplace', icon: Flame, label: 'Fireplace'},
-    {id: 'Pets allowed', icon: PawPrint, label: 'Pets allowed'},
-    {id: 'Bicycle', icon: Bike, label: 'Bicycle'},
-    {id: 'BBQ grill', icon: Utensils, label: 'BBQ grill'},
-    {id: 'Hot tub', icon: Waves, label: 'Hot tub'},
-    {id: 'Breakfast', icon: Coffee, label: 'Breakfast'},
+    {id: 'Wifi', icon: Wifi, label: 'WiFi', category: 'General'},
+    {id: 'TV', icon: Tv, label: 'Smart TV', category: 'Entertainment'},
+    {id: 'Free parking', icon: Car, label: 'Free parking', category: 'General'},
+    {id: 'Air conditioning', icon: Wind, label: 'Air conditioning', category: 'General'},
+    {id: 'Kitchen', icon: Utensils, label: 'Kitchen', category: 'Essentials'},
+    {id: 'Washing machine', icon: WashingMachine, label: 'Washer/Dryer', category: 'Essentials'},
+    {id: 'Gym', icon: Dumbbell, label: 'Gym access', category: 'Health & Wellness'},
+    {id: 'Coffee maker', icon: Coffee, label: 'Coffee maker', category: 'Essentials'},
+    {id: 'Pool', icon: Waves, label: 'Pool', category: 'Health & Wellness'},
+    {id: 'Fire extinguisher', icon: ShieldCheck, label: 'Fire safety', category: 'Safety'},
+    {id: 'Fireplace', icon: Flame, label: 'Fireplace', category: 'Comfort'},
+    {id: 'Pets allowed', icon: PawPrint, label: 'Pets allowed', category: 'General'},
+    {id: 'Bicycle', icon: Bike, label: 'Bicycle', category: 'Health & Wellness'},
+    {id: 'BBQ grill', icon: Utensils, label: 'BBQ grill', category: 'Outdoors'},
+    {id: 'Hot tub', icon: Waves, label: 'Hot tub', category: 'Health & Wellness'},
+    {id: 'Breakfast', icon: Coffee, label: 'Breakfast', category: 'Essentials'},
+];
+
+export const ROOM_AMENITY_LIST = [
+    {id: 'room_wifi', icon: Wifi, label: 'Room WiFi', category: 'Connectivity'},
+    {id: 'room_tv', icon: Tv, label: 'Smart TV', category: 'Entertainment'},
+    {id: 'room_ac', icon: Wind, label: 'Air Conditioning', category: 'Comfort'},
+    {id: 'room_coffee', icon: Coffee, label: 'Coffee Maker', category: 'Essentials'},
+    {id: 'room_minibar', icon: Utensils, label: 'Minibar / Fridge', category: 'Essentials'},
+    {id: 'room_bathtub', icon: Bath, label: 'Bathtub', category: 'Bathroom'},
+    {id: 'room_safe', icon: Lock, label: 'Room Safe', category: 'Safety'},
+    {id: 'room_workspace', icon: Laptop, label: 'Dedicated Desk', category: 'Connectivity'},
 ];
 
 export const COUNTRIES = [
     'India', 'United States', 'United Kingdom', 'Australia', 'Canada',
     'Germany', 'France', 'Spain', 'Italy', 'Japan', 'UAE', 'Singapore',
     'Thailand', 'Greece', 'Portugal', 'Netherlands', 'Sweden', 'Brazil',
+];
+
+
+
+
+
+// Maps multi-room properties to valid backend RoomSkuType Enums
+export const MULTI_ROOM_SKU_TYPES = [
+    { value: 'STANDARD_ROOM', label: 'Standard Room' },
+    { value: 'DELUXE_ROOM', label: 'Deluxe Room' },
+    { value: 'EXECUTIVE_SUITE', label: 'Executive Suite' },
+    { value: 'PRESIDENTIAL_SUITE', label: 'Presidential Suite' },
+    { value: 'FAMILY_ROOM', label: 'Family Room' },
+    { value: 'STUDIO_APARTMENT', label: 'Studio Apartment' },
+    { value: 'PENTHOUSE', label: 'Penthouse' },
+    { value: 'DORM_BED', label: 'Dorm Bed (Shared)' }
 ];

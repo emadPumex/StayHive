@@ -1,6 +1,6 @@
 import apiClient from '../../../core/api/apiClient';
 
-//Extract lists of countries & cities for location dropdowns dynamic mapping
+
 export const getLocationsMetadata = async () => {
     try {
         const response = await apiClient.get("/properties/locations");
@@ -12,9 +12,7 @@ export const getLocationsMetadata = async () => {
     }
 };
 
-//  * Fetch properties from Spring Boot backend.
-//  * Automatically falls back to filtered mock data if the API connection fails.
-//  */
+
 export const getListings = async (filters = {}) => {
     try {
         const params = {};
@@ -51,9 +49,7 @@ export const getListings = async (filters = {}) => {
     }
 };
 
-/**
- * Fetch details of a single property.
- */
+
 export const getListingById = async (id) => {
     try {
         const response = await apiClient.get(`/properties/${id}`);
@@ -74,8 +70,7 @@ export const getListingById = async (id) => {
 
 export const createListing = async (formData) => {
     try {
-        // Axios automatically handles the multipart/form-data boundary headers
-        // when it detects a FormData instance as the body payload.
+
         const response = await apiClient.post('/properties', formData);
         return response.data;
     } catch (error) {
@@ -85,32 +80,19 @@ export const createListing = async (formData) => {
     }
 };
 
-/**
- * Submit a review for a property. Requires the user to be authenticated.
- * @param {string} propertyId
- * @param {{ rating: number, comment: string }} reviewData
- */
+
 export const submitReview = async (propertyId, reviewData) => {
     const response = await apiClient.post(`/properties/${propertyId}/reviews`, reviewData);
     return response.data;
 };
 
-/**
- * Update an existing review. Caller must be the review author.
- * @param {string} propertyId
- * @param {string} reviewId
- * @param {{ rating: number, comment: string }} reviewData
- */
+
 export const updateReview = async (propertyId, reviewId, reviewData) => {
     const response = await apiClient.put(`/properties/${propertyId}/reviews/${reviewId}`, reviewData);
     return response.data;
 };
 
-/**
- * Delete a review. Caller must be the review author.
- * @param {string} propertyId
- * @param {string} reviewId
- */
+
 export const deleteReview = async (propertyId, reviewId) => {
     await apiClient.delete(`/properties/${propertyId}/reviews/${reviewId}`);
 };

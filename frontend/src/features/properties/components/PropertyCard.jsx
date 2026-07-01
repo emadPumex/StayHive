@@ -7,18 +7,20 @@ const PropertyCard = ({property}) => {
         id,
         name,
         propertyType,
-        roomType,
-        price,
-        accommodates,
-        bedrooms,
-        bathrooms,
-        amenities,
         reviewScores,
         host,
         address,
         images
     } = property;
     const [liked, setLiked] = useState(false);
+
+    const room = property.roomCategories?.[0] || {};
+    const price = room.basePrice || property.price || 0;
+    const accommodates = room.accommodates || property.accommodates || 1;
+    const bedrooms = room.bedroomCount || property.bedrooms || 0;
+    const bathrooms = room.bathrooms || property.bathrooms || 1;
+    const roomType = room.roomType || property.roomType || '';
+    const amenities = property.propertyAmenities?.map(a => a.name) || property.amenities || [];
 
     const rating = reviewScores?.reviewScoresRating;
     const isSuperhost = host?.hostIsSuperhost;

@@ -3,8 +3,7 @@ package com.stayhive.dto;
 import java.util.List;
 
 import com.stayhive.model.property.Property.PropertyType;
-import com.stayhive.model.property.Property.RoomType;
-import com.stayhive.model.property.Property.CancellationPolicy;
+import com.stayhive.model.property.RoomCategory.RoomType;
 
 public record PropertyUpdateDTO(
         String name,
@@ -14,9 +13,10 @@ public record PropertyUpdateDTO(
         PropertyType propertyType,
         RoomType roomType,
         Integer accommodates,
+        Integer bedroomCount,
         Integer bedrooms,
         Integer bathrooms,
-        CancellationPolicy cancellationPolicy,
+        String cancellationPolicy,
         List<String> amenities
 ) {
 }

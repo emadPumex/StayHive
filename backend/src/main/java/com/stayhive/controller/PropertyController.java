@@ -22,8 +22,10 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-
-
+import java.util.HashMap;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 @RestController
 @RequestMapping("/api/properties")
 @RequiredArgsConstructor
@@ -68,14 +70,31 @@ public class PropertyController {
     }
 
     @PostMapping("")
-    public ResponseEntity<?> createPropertyDraft(@ModelAttribute PropertyFormDTO dto, Authentication authentication) {
+    public ResponseEntity<?> createPropertyDraft(
+            @RequestPart("data") PropertyDataDTO dto,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "profileImageUrl", required = false) MultipartFile profileImageUrl,
+            HttpServletRequest rawRequest,
+            Authentication authentication) {
         try {
-            // Extract the actual logged-in user's email from your Spring Security Context
+
+
             String ownerEmail = authentication.getName();
 
-            propertyService.initiatePropertyCreation(dto, ownerEmail);
+            // Cast the already-wrapped servlet request — safe, Spring wraps it at filter level
+            Map<Integer, List<MultipartFile>> roomImagesMap = new HashMap<>();
+            if (rawRequest instanceof MultipartHttpServletRequest multipartRequest
+                    && dto.roomCategories() != null) {
+                for (int i = 0; i < dto.roomCategories().size(); i++) {
+                    List<MultipartFile> rImages = multipartRequest.getFiles("roomImages_" + i);
+                    if (rImages != null && !rImages.isEmpty()) {
+                        roomImagesMap.put(i, rImages);
+                    }
+                }
+            }
 
-            // Return 202 Accepted, indicating the request is processing asynchronously via email
+            propertyService.initiatePropertyCreation(dto, images, profileImageUrl, roomImagesMap, ownerEmail);
+
             return ResponseEntity.status(HttpStatus.ACCEPTED)
                     .body("Property draft created. Please check your email to confirm and activate the listing.");
         } catch (Exception e) {
@@ -238,4 +257,4 @@ public class PropertyController {
         }
     }
 
-}
+}

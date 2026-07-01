@@ -8,23 +8,7 @@ const ratingColors  = ['', '#EF4444', '#F97316', '#EAB308', '#84CC16', '#C8FB4C'
 const getInitials = (name) =>
     name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U';
 
-/**
- * ReviewForm handles four display states:
- *  1. Unauthenticated      → sign-in prompt
- *  2. Host of property     → "hosts can't review" notice
- *  3. submitSuccess        → thank-you confirmation
- *  4. Authenticated        → write / edit review form
- *
- * Props:
- *  user            — auth user object (null if unauthenticated)
- *  isHost          — true when user is the property host
- *  editingReview   — review object being edited, or null for new review
- *  onCancelEdit    — callback to exit edit mode
- *  reviewRating / setReviewRating
- *  reviewComment / setReviewComment
- *  isSubmitting / submitSuccess
- *  onSubmit / onSignIn
- */
+
 const ReviewForm = ({
     user,
     isHost,

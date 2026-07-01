@@ -304,7 +304,10 @@ const MyPropertiesPage = () => {
                                 {filteredProperties.map(property => {
                                     const isLive = property.isActive;
                                     const isBooked = property.bookedDates?.length > 0;
-                                    const coverImg = property.images?.coverImageUrl || property.images?.pictureUrl || property.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80';
+                                    const coverImg = property.images?.coverImageUrl || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80';
+                                    const room = property.roomCategories?.[0] || {};
+                                    const price = room.basePrice || property.price || 0;
+                                    const roomType = room.roomType || property.roomType || '';
 
                                     return (
                                         <div
@@ -357,7 +360,7 @@ const MyPropertiesPage = () => {
                                                         {property.name}
                                                     </h3>
                                                     <p className="text-xs text-[#8A8FA8] mt-1 font-medium uppercase tracking-wide">
-                                                        {property.roomType?.replace('_', ' ')}
+                                                        {roomType?.replace('_', ' ')}
                                                     </p>
                                                 </div>
 
@@ -367,7 +370,7 @@ const MyPropertiesPage = () => {
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-[11px]">Price:</span>
                                                         <span
-                                                            className="text-[#FAFAF8] font-extrabold text-sm">${property.price}</span>
+                                                            className="text-[#FAFAF8] font-extrabold text-sm">${price}</span>
                                                         <span className="text-[10px] text-[#8A8FA8]/70">/ night</span>
                                                     </div>
 

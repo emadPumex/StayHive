@@ -6,13 +6,7 @@ const ratingLabels = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'];
 const getInitials = (name) =>
     name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U';
 
-/**
- * Props:
- *  - review        : the review object
- *  - currentUserId : id of the logged-in user (null if not logged in)
- *  - onEdit        : (review) => void  — called when the author clicks Edit
- *  - onDelete      : (reviewId) => void — called when the author clicks Delete
- */
+
 const ReviewCard = ({ review, currentUserId, onEdit, onDelete }) => {
     const displayName  = review.reviewerName || 'Guest';
     const isOwner      = currentUserId && currentUserId === review.userId;

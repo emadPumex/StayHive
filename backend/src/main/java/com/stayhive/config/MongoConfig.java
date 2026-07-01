@@ -35,11 +35,7 @@ public class MongoConfig {
         ));
     }
 
-    /**
-     * Writing: LocalDate → Date
-     * atStartOfDay(UTC) ensures 2026-06-26 is stored as 2026-06-26T00:00:00Z,
-     * never as the previous day in UTC.
-     */
+
     @WritingConverter
     static class LocalDateToDateConverter implements Converter<LocalDate, Date> {
         @Override
@@ -48,11 +44,7 @@ public class MongoConfig {
         }
     }
 
-    /**
-     * Reading: Date → LocalDate
-     * Interprets the stored BSON date in UTC — the exact inverse of the writer.
-     * No timezone drift when recovering the LocalDate from MongoDB.
-     */
+
     @ReadingConverter
     static class DateToLocalDateConverter implements Converter<Date, LocalDate> {
         @Override

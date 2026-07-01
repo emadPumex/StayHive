@@ -100,18 +100,20 @@ const PropertyEditModal = ({ isOpen, onClose, property, onSave }) => {
     useEffect(() => {
         if (property && isOpen) {
             setName(property.name || '');
-            setPrice(property.price || 0);
+            const room = property.roomCategories?.[0] || {};
+            setPrice(room.basePrice || property.price || 0);
             setPropertyType(property.propertyType || 'APARTMENT');
-            setRoomType(property.roomType || 'ENTIRE_PLACE');
+            setRoomType(room.roomType || property.roomType || 'ENTIRE_PLACE');
             setCity(property.address?.city || '');
             setSummary(property.summary || '');
-            setAccommodates(property.accommodates || 1);
-            setBedrooms(property.bedrooms || 1);
-            setBathrooms(property.bathrooms || 1);
-            setCancellationPolicy(property.cancellationPolicy || 'FLEXIBLE');
+            setAccommodates(room.accommodates || property.accommodates || 1);
+            setBedrooms(room.bedroomCount || property.bedrooms || 1);
+            setBathrooms(room.bathrooms || property.bathrooms || 1);
+            setCancellationPolicy(property.cancellationPolicy?.type || property.cancellationPolicy || 'FLEXIBLE');
 
-            // Core Change: Deep copy existing array to retain all items from DB
-            if (Array.isArray(property.amenities)) {
+            if (Array.isArray(property.propertyAmenities)) {
+                setAmenities(property.propertyAmenities.map(a => a.name));
+            } else if (Array.isArray(property.amenities)) {
                 setAmenities([...property.amenities]);
             } else {
                 setAmenities([]);

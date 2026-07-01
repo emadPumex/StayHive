@@ -30,10 +30,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromCookie(request);
 
-        // If a token is present and valid, set the authentication in the security context.
-        // If there is no token (e.g. guest/logged-out user), simply proceed without
-        // setting authentication — Spring Security's permitAll() rules will allow
-        // public endpoints, and its authenticated() rules will reject protected ones.
+
         if (token != null && jwtUtil.isTokenValid(token)) {
             String email = jwtUtil.extractEmail(token);
             var auth = new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
