@@ -1,6 +1,6 @@
 import React from 'react';
 import {Check} from 'lucide-react';
-import {STEPS, T} from './constants';
+import {STEPS, T} from '../constants.js';
 
 const StepBar = ({current}) => (
     <nav aria-label="Form progress" className="mb-10">

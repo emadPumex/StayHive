@@ -22,13 +22,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
+
 import org.springframework.security.access.AccessDeniedException;
 
 @Service
@@ -76,9 +73,11 @@ public class PropertyService {
 
         if (p.getMinPrice() != null) criteria.add(Criteria.where("roomCategories.basePrice").gte(p.getMinPrice()));
         if (p.getMaxPrice() != null) criteria.add(Criteria.where("roomCategories.basePrice").lte(p.getMaxPrice()));
-        if (p.getMinAccommodates() != null) criteria.add(Criteria.where("roomCategories.accommodates").gte(p.getMinAccommodates()));
+        if (p.getMinAccommodates() != null)
+            criteria.add(Criteria.where("roomCategories.accommodates").gte(p.getMinAccommodates()));
         if (p.getMinBedrooms() != null) criteria.add(Criteria.where("roomCategories.bedCount").gte(p.getMinBedrooms()));
-        if (p.getMinBathrooms() != null) criteria.add(Criteria.where("roomCategories.bathrooms").gte(p.getMinBathrooms()));
+        if (p.getMinBathrooms() != null)
+            criteria.add(Criteria.where("roomCategories.bathrooms").gte(p.getMinBathrooms()));
 
         if (Boolean.TRUE.equals(p.getIsSuperhost()))
             criteria.add(Criteria.where("host.hostIsSuperhost").is(true));
@@ -141,8 +140,6 @@ public class PropertyService {
     public PropertyDetailsResponseDTO getListingById(String id) {
 
         Property property = listingRepository.findById(id).orElse(null);
-
-
 
 
         List<Review> reviews = reviewRepository.findByPropertyId(id);
@@ -318,7 +315,6 @@ public class PropertyService {
     }
 
 
-
     public Property updatePropertyStatus(String propertyId, Boolean isActive) {
         // 1. Fetch the property from MongoDB or throw a clean 404 error if it doesn't exist
         Property property = propertyRepository.findById(propertyId)
@@ -332,102 +328,144 @@ public class PropertyService {
     }
 
     public Property updatePropertyDetails(String id, PropertyUpdateDTO dto) {
-        // 1. Retrieve the existing document from MongoDB
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property listing not found with id: " + id));
 
         property.setName(dto.name());
         property.setSummary(dto.summary());
-        property.setPropertyType(dto.propertyType());
 
-        // Update / create default room category
-        List<RoomCategory> categories = property.getRoomCategories();
-        if (categories == null || categories.isEmpty()) {
-            categories = new ArrayList<>();
-            categories.add(RoomCategory.builder().id("STANDARD_ROOM").name("Standard Room").build());
-        }
-        RoomCategory defaultRoom = categories.get(0);
-        if (dto.price() != null) defaultRoom.setBasePrice(dto.price());
-        if (dto.roomType() != null) {
+        if (dto.propertyType() != null) {
             try {
-                defaultRoom.setRoomType(dto.roomType());
-            } catch (Exception ignored) {}
-        }
-        if (dto.accommodates() != null) defaultRoom.setAccommodates(dto.accommodates());
-        if (dto.bedroomCount() != null) defaultRoom.setBedroomCount(dto.bedroomCount());
-        if (dto.bedrooms() != null) defaultRoom.setBedCount(dto.bedrooms());
-        if (dto.bathrooms() != null) defaultRoom.setBathrooms(dto.bathrooms());
-        property.setRoomCategories(categories);
-
-        // Update cancellation policy
-        CancellationPolicy policy = property.getCancellationPolicy();
-        if (policy == null) {
-            policy = new CancellationPolicy();
-        }
-        if (dto.cancellationPolicy() != null) {
-            try {
-                CancellationPolicy.PolicyType pType = CancellationPolicy.PolicyType.valueOf(dto.cancellationPolicy());
-                policy.setType(pType);
-                policy.setName(dto.cancellationPolicy() + " Cancellation Policy");
-                policy.setDescription("Custom cancellation policy: " + dto.cancellationPolicy());
-            } catch (Exception ignored) {}
-        }
-        property.setCancellationPolicy(policy);
-
-        // 3. Sync full incoming array list over existing collections safely
-        if (dto.amenities() != null) {
-            List<Amenity> propertyAmenities = new ArrayList<>();
-            for (String aName : dto.amenities()) {
-                propertyAmenities.add(Amenity.builder()
-                        .id(aName.toLowerCase().replaceAll("[^a-z0-9]", "_"))
-                        .name(aName)
-                        .category("GENERAL")
-                        .build());
+                property.setPropertyType(Property.PropertyType.valueOf(dto.propertyType()));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid propertyType: " + dto.propertyType());
             }
-            property.setPropertyAmenities(propertyAmenities);
         }
 
-        // 4. Handle nested sub-document update for Address object
-        if (property.getAddress() != null) {
+        // Address (nested sub-document) — city only, per current UI scope
+        if (property.getAddress() != null && dto.city() != null) {
             property.getAddress().setCity(dto.city());
-
         }
 
-        // 5. Save the mutated state back to the 'properties' collection
+        // Property-level amenities — full replace, ids/categories trusted from client catalog
+        if (dto.propertyAmenities() != null) {
+            List<Amenity> amenities = dto.propertyAmenities().stream()
+                    .map(a -> Amenity.builder()
+                            .id(a.id())
+                            .name(a.name())
+                            .category(a.category())
+                            .build())
+                    .toList();
+            property.setPropertyAmenities(amenities);
+        }
+
+        // Cancellation policy — full replace including refund window tiers
+        if (dto.cancellationPolicy() != null) {
+            CancellationPolicyDTO cpDto = dto.cancellationPolicy();
+            CancellationPolicy policy = new CancellationPolicy();
+
+            try {
+                policy.setType(CancellationPolicy.PolicyType.valueOf(cpDto.type()));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid cancellationPolicy.type: " + cpDto.type());
+            }
+            policy.setName(cpDto.name());
+            policy.setDescription(cpDto.description());
+
+            List<CancellationPolicy.CancellationWindow> windows = cpDto.windows() == null
+                    ? Collections.emptyList()
+                    : cpDto.windows().stream()
+                    .map(w -> new CancellationPolicy.CancellationWindow(w.daysBeforeCheckIn(), w.refundPercentage()))
+                    .toList();
+            policy.setWindows(windows);
+
+            property.setCancellationPolicy(policy);
+        }
+
+        if (dto.roomCategories() != null) {
+            if (dto.roomCategories().isEmpty()) {
+                throw new IllegalArgumentException("At least one room category is required.");
+            }
+
+            List<RoomCategory> categories = dto.roomCategories().stream()
+                    .map(this::toRoomCategory)
+                    .toList();
+
+            boolean hasEntirePlace = categories.stream()
+                    .anyMatch(rc -> rc.getRoomType() == RoomCategory.RoomType.ENTIRE_PLACE);
+            if (hasEntirePlace && categories.size() > 1) {
+                throw new IllegalArgumentException("Entire Place must be the only room category.");
+            }
+
+            property.setRoomCategories(categories);
+        }
+
         return propertyRepository.save(property);
     }
 
-    public Property saveBlockedDates(String id, List<LocalDate> incomingBlockedDates) {
+    private RoomCategory toRoomCategory(RoomCategoryDTO dto) {
+        RoomCategory.RoomType roomType;
+        try {
+            roomType = RoomCategory.RoomType.valueOf(dto.roomType());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid roomType: " + dto.roomType());
+        }
 
+        List<Amenity> roomAmenities = dto.roomAmenities() == null
+                ? Collections.emptyList()
+                : dto.roomAmenities().stream()
+                .map(a -> Amenity.builder().id(a.id()).name(a.name()).category(a.category()).build())
+                .toList();
+
+        return RoomCategory.builder()
+                .id(dto.id())
+                .name(dto.name())
+                .roomType(roomType)
+                .bedroomCount(dto.bedroomCount())
+                .basePrice(dto.basePrice())
+                .totalInventory(dto.totalInventory())
+                .accommodates(dto.accommodates())
+                .bedCount(dto.bedCount())
+                .bathrooms(dto.bathrooms())
+                .roomAmenities(roomAmenities)
+                .images(dto.images())
+                .roomBlockRules(dto.roomBlockRules())
+                .build();
+    }
+
+    public Property updateAvailability(String id, PropertyAvailabilityUpdateDTO dto) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Property listing not found with id: " + id));
 
-        List<BlockRule> rules = property.getPropertyBlockRules();
-        if (rules == null) {
-            rules = new ArrayList<>();
-        } else {
-            rules = new ArrayList<>(rules);
-            // Remove previous manual host blocks
-            rules.removeIf(rule -> "Host Manual Block".equals(rule.getReason()));
-        }
+        property.setPropertyBlockRules(toBlockRules(dto.propertyBlockRules()));
 
-        // Add new blocks
-        if (incomingBlockedDates != null) {
-            for (LocalDate date : incomingBlockedDates) {
-                if (date != null) {
-                    rules.add(BlockRule.builder()
-                            .id(UUID.randomUUID().toString())
-                            .reason("Host Manual Block")
-                            .blockType(BlockRule.BlockType.SPECIFIC_DATES)
-                            .startDate(date)
-                            .endDate(date)
-                            .build());
+        if (dto.roomCategories() != null) {
+            Map<String, List<BlockRule>> rulesByRoomId = dto.roomCategories().stream()
+                    .collect(Collectors.toMap(RoomAvailabilityDTO::id, r -> toBlockRules(r.roomBlockRules())));
+
+            for (RoomCategory room : property.getRoomCategories()) {
+                if (rulesByRoomId.containsKey(room.getId())) {
+                    room.setRoomBlockRules(rulesByRoomId.get(room.getId()));
                 }
             }
         }
-        property.setPropertyBlockRules(rules);
 
         return propertyRepository.save(property);
+    }
+
+    private List<BlockRule> toBlockRules(List<BlockRuleDTO> dtos) {
+        if (dtos == null) return new ArrayList<>();
+        return dtos.stream()
+                .map(d -> BlockRule.builder()
+                        .id(d.id() != null ? d.id() : UUID.randomUUID().toString())
+                        .reason(d.reason())
+                        .blockType(BlockRule.BlockType.valueOf(d.blockType()))
+                        .startDate(d.startDate())
+                        .endDate(d.endDate())
+                        .daysOfWeek(d.daysOfWeek())
+                        .monthlyRule(d.monthlyRule() != null ? d.monthlyRule(): null)
+                        .build())
+                .toList();
     }
 
     public Review submitReview(String propertyId, String userEmail, ReviewRequestDTO dto) {

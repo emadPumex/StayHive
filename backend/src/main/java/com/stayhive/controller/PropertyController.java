@@ -169,21 +169,17 @@ public class PropertyController {
             @PathVariable String id,
             @RequestBody PropertyUpdateDTO updateDto
     ) {
-        // 1. Process the update operation via the service layer
         Property updatedProperty = propertyService.updatePropertyDetails(id, updateDto);
-
-        // 2. Return the fully updated MongoDB document back to React
         return ResponseEntity.ok(updatedProperty);
     }
 
     @PutMapping("/{id}/availability")
     public ResponseEntity<Property> updateAvailability(
             @PathVariable String id,
-            @RequestBody List<LocalDate> incomingBlockedDates
+            @RequestBody PropertyAvailabilityUpdateDTO dto
     ) {
-
-        Property updatedProperty = propertyService.saveBlockedDates(id, incomingBlockedDates);
-        return ResponseEntity.ok(updatedProperty);
+        Property updated = propertyService.updateAvailability(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @PostMapping("/{id}/reviews")

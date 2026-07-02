@@ -1,6 +1,6 @@
 // Step4.jsx
 import {Plus, Trash2, Upload, X} from 'lucide-react';
-import {T, MULTI_ROOM_SKU_TYPES, ROOM_AMENITY_LIST} from './constants';
+import {T, MULTI_ROOM_SKU_TYPES, ROOM_AMENITY_LIST} from '../constants.js';
 import {Section, Select, Label, Input, FieldError, Textarea, Counter} from './FormControls';
 import {useEffect, useRef, useState} from 'react';
 import {createLocalPreview, revokeLocalPreview} from './utils';

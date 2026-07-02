@@ -48,27 +48,11 @@ const roomTypes = [
     {label: 'Private room', value: 'PRIVATE_ROOM'},
     {label: 'Shared room', value: 'SHARED_ROOM'}
 ];
-const CANCELLATION_POLICIES = [
-    {
-        value: 'FLEXIBLE',
-        label: 'Flexible',
-        desc: 'Full refund up to 1 day before'
-    },
-    {
-        value: 'MODERATE',
-        label: 'Moderate',
-        desc: 'Full refund up to 5 days before'
-    },
-    {
-        value: 'STRICT',
-        label: 'Strict',
-        desc: 'Full refund up to 14 days before'
-    },
-    {
-        value: 'SUPER_STRICT',
-        label: 'Super Strict',
-        desc: 'Non-refundable after booking'
-    }
+export const CANCELLATION_POLICIES = [
+    {value: 'FLEXIBLE', label: 'Flexible', desc: 'Full refund up to 1 day before'},
+    {value: 'MODERATE', label: 'Moderate', desc: 'Full refund up to 5 days before'},
+    {value: 'STRICT', label: 'Strict', desc: 'Full refund up to 14 days before'},
+    {value: 'SUPER_STRICT', label: 'Super Strict', desc: 'Non-refundable after booking'},
 ];
 
 const FilterSidebar = ({filters, onChangeFilters, onClearFilters, isMobileDrawer = false, onCloseMobile}) => {

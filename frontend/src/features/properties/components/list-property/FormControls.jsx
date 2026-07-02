@@ -1,5 +1,5 @@
 import {AlertCircle, Check} from 'lucide-react';
-import {T} from './constants';
+import {T} from '../constants.js';
 import {clamp} from './utils';
 
 export const Label = ({children, required, htmlFor}) => (

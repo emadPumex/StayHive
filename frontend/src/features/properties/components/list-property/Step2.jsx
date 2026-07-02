@@ -1,5 +1,5 @@
 import {Plus, Trash2, ChevronRight} from 'lucide-react';
-import {CANCELLATION_POLICIES, T} from './constants';
+import {CANCELLATION_POLICIES, T} from '../constants.js';
 import {Section, Select, Label, Input, FieldError} from './FormControls';
 
 const Step2 = ({data, set, errors}) => {

@@ -2,40 +2,35 @@ import React, {useState, useEffect} from 'react';
 import {Link} from 'react-router-dom';
 import {
     Calendar, Sliders, Power, EyeOff, Search, Plus, MapPin,
-    Home, HelpCircle, Activity, Sparkles, Building2, CheckCircle, Loader2
+    Home, HelpCircle, Activity, Sparkles, Building2, CheckCircle, Loader2, Lock
 } from 'lucide-react';
 import {toast} from 'sonner';
 
-
-import PropertyAvailabilityModal from '../components/PropertyAvailabilityModal';
-import PropertyEditModal from '../components/PropertyEditModal';
+import PropertyAvailabilityModal from '../components/My-properties/PropertyAvailabilityModal/index';
+import PropertyEditModal from '../components/My-properties/PropertyEditModal/index';
 import apiClient from "../../../core/api/apiClient.js";
 
 const MyPropertiesPage = () => {
     const [properties, setProperties] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState('ALL'); // ALL, ACTIVE, INACTIVE, BOOKED
+    const [activeFilter, setActiveFilter] = useState('ALL'); // ALL, ACTIVE, INACTIVE, BLOCKED
 
-    // Modal states
     const [selectedProperty, setSelectedProperty] = useState(null);
     const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
 
     const [confirmingId, setConfirmingId] = useState(null);
-    // 1. Fetch properties on mount
+
     useEffect(() => {
         fetchMyProperties();
     }, []);
 
-
-// Replace handleToggleActive
     const handleToggleActive = async (id, currentStatus) => {
         if (confirmingId !== id) {
-            setConfirmingId(id); // show inline confirm
+            setConfirmingId(id);
             return;
         }
-        // User confirmed
         setConfirmingId(null);
         const newStatus = !currentStatus;
         try {
@@ -50,7 +45,6 @@ const MyPropertiesPage = () => {
     const fetchMyProperties = async () => {
         try {
             setIsLoading(true);
-            // Replace with your actual backend endpoint
             const response = await apiClient.get('/properties/host');
             setProperties(response.data);
         } catch (error) {
@@ -63,40 +57,30 @@ const MyPropertiesPage = () => {
         }
     };
 
-
-    // 3. Async Availability Update
-    const handleSaveAvailability = async (id, blockedDates) => {
+    // Updated: modal now sends { propertyBlockRules, roomCategories } instead of a flat blockedDates array
+    const handleSaveAvailability = async (id, availabilityUpdate) => {
         try {
-            const response = await apiClient.put(`/properties/${id}/availability`, blockedDates);
-
+            const response = await apiClient.put(`/properties/${id}/availability`, availabilityUpdate);
             const updatedProperty = response.data;
 
-            // Update the properties list so the card reflects the new state
             setProperties(prev => prev.map(p => p.id === id ? updatedProperty : p));
-
-            // Also refresh selectedProperty so if the modal is reopened immediately,
-            // it loads the freshly-saved blocked dates from availability.blockedDates
             setSelectedProperty(prev => prev?.id === id ? updatedProperty : prev);
 
             toast.success('Availability schedule updated successfully', {
-                description: 'Custom host-blocked dates have been saved.',
+                description: 'Block rules have been saved.',
                 duration: 3000
             });
         } catch (error) {
             console.error('Error saving availability:', error);
             toast.error('Failed to save calendar', {
-                description: 'Your blocked dates could not be saved.'
+                description: 'Your block rules could not be saved.'
             });
         }
     };
 
-    // 4. Async Details Update
     const handleSaveEdit = async (id, fields) => {
         try {
-            // Replace with your actual update endpoint
             const response = await apiClient.put(`/properties/${id}`, fields);
-
-            // Update local state with the returned updated property
             setProperties(prev => prev.map(p => p.id === id ? response.data : p));
 
             toast.success('Listing details updated', {
@@ -111,7 +95,13 @@ const MyPropertiesPage = () => {
         }
     };
 
-    // Filtering logic
+    // Derived from BlockRules now, not a bookedDates field (which doesn't exist on Property)
+    const hasActiveBlocks = (property) => {
+        const propertyLevel = property.propertyBlockRules?.length > 0;
+        const roomLevel = property.roomCategories?.some(r => r.roomBlockRules?.length > 0);
+        return propertyLevel || roomLevel;
+    };
+
     const filteredProperties = properties.filter(prop => {
         const matchesSearch =
             prop.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -122,16 +112,15 @@ const MyPropertiesPage = () => {
 
         if (activeFilter === 'ACTIVE') return prop.isActive;
         if (activeFilter === 'INACTIVE') return !prop.isActive;
-        if (activeFilter === 'BOOKED') return prop.isActive && prop.bookedDates?.length > 0;
+        if (activeFilter === 'BLOCKED') return prop.isActive && hasActiveBlocks(prop);
 
         return true;
     });
 
-    // Counts for stats
     const totalCount = properties.length;
     const activeCount = properties.filter(p => p.isActive).length;
     const inactiveCount = properties.filter(p => !p.isActive).length;
-    const bookedCount = properties.filter(p => p.isActive && p.bookedDates?.length > 0).length;
+    const blockedCount = properties.filter(p => p.isActive && hasActiveBlocks(p)).length;
 
     return (
         <div className="min-h-screen bg-[#0B0F19] text-[#FAFAF8] py-8 px-4 sm:px-6 lg:px-8">
@@ -173,7 +162,6 @@ const MyPropertiesPage = () => {
                     </Link>
                 </div>
 
-                {/* Loading State Spinner */}
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20">
                         <Loader2 className="w-10 h-10 text-[#C8FB4C] animate-spin mb-4"/>
@@ -183,7 +171,6 @@ const MyPropertiesPage = () => {
                     <>
                         {/* Stats Dashboard Grid */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            {/* Stat 1 */}
                             <div
                                 className="bg-[#111622] border border-[#1A1D26] p-5 rounded-2xl flex items-center justify-between">
                                 <div>
@@ -197,7 +184,6 @@ const MyPropertiesPage = () => {
                                 </div>
                             </div>
 
-                            {/* Stat 2 */}
                             <div
                                 className="bg-[#111622] border border-[#1A1D26] p-5 rounded-2xl flex items-center justify-between relative overflow-hidden group">
                                 <div
@@ -223,21 +209,20 @@ const MyPropertiesPage = () => {
                                 </div>
                             </div>
 
-                            {/* Stat 3 */}
+                            {/* Blocked Dates (was "Booked Stays" — now derived from BlockRules, not a nonexistent bookedDates field) */}
                             <div
                                 className="bg-[#111622] border border-[#1A1D26] p-5 rounded-2xl flex items-center justify-between">
                                 <div>
-                                    <p className="text-xs font-semibold text-[#8A8FA8] uppercase tracking-wider">Booked
-                                        Stays</p>
-                                    <h3 className="text-2xl font-black mt-1 text-indigo-400">{bookedCount}</h3>
+                                    <p className="text-xs font-semibold text-[#8A8FA8] uppercase tracking-wider">Blocked
+                                        Dates</p>
+                                    <h3 className="text-2xl font-black mt-1 text-indigo-400">{blockedCount}</h3>
                                 </div>
                                 <div
                                     className="w-10 h-10 rounded-xl bg-indigo-950/40 border border-indigo-500/20 flex items-center justify-center">
-                                    <Activity className="w-5 h-5 text-indigo-400"/>
+                                    <Lock className="w-5 h-5 text-indigo-400"/>
                                 </div>
                             </div>
 
-                            {/* Stat 4 */}
                             <div
                                 className="bg-[#111622] border border-[#1A1D26] p-5 rounded-2xl flex items-center justify-between">
                                 <div>
@@ -255,12 +240,11 @@ const MyPropertiesPage = () => {
                         {/* Filters, Tab pills & Search Area */}
                         <div
                             className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#111622] border border-[#1A1D26] p-4 rounded-2xl">
-                            {/* Filter Pills */}
                             <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
                                 {[
                                     {id: 'ALL', label: 'All Listings', count: totalCount},
                                     {id: 'ACTIVE', label: 'Active', count: activeCount},
-                                    {id: 'BOOKED', label: 'Booked', count: bookedCount},
+                                    {id: 'BLOCKED', label: 'Blocked Dates', count: blockedCount},
                                     {id: 'INACTIVE', label: 'Inactive', count: inactiveCount}
                                 ].map(tab => {
                                     const isActive = activeFilter === tab.id;
@@ -285,7 +269,6 @@ const MyPropertiesPage = () => {
                                 })}
                             </div>
 
-                            {/* Search Input */}
                             <div className="relative flex-1 lg:max-w-md w-full">
                                 <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-[#8A8FA8]"/>
                                 <input
@@ -303,11 +286,28 @@ const MyPropertiesPage = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredProperties.map(property => {
                                     const isLive = property.isActive;
-                                    const isBooked = property.bookedDates?.length > 0;
+                                    const blocked = hasActiveBlocks(property);
                                     const coverImg = property.images?.coverImageUrl || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80';
-                                    const room = property.roomCategories?.[0] || {};
-                                    const price = room.basePrice || property.price || 0;
-                                    const roomType = room.roomType || property.roomType || '';
+
+                                    const rooms = property.roomCategories || [];
+                                    const isStandalone = rooms.length === 1 && rooms[0].roomType === 'ENTIRE_PLACE';
+
+                                    const prices = rooms.map(r => r.basePrice).filter(p => p != null);
+                                    const minPrice = prices.length ? Math.min(...prices) : 0;
+                                    const maxPrice = prices.length ? Math.max(...prices) : 0;
+                                    const priceLabel = prices.length === 0
+                                        ? 'N/A'
+                                        : minPrice === maxPrice
+                                            ? `$${minPrice}`
+                                            : `$${minPrice}–$${maxPrice}`;
+
+                                    const totalInventory = rooms.reduce((sum, r) => sum + (r.totalInventory || 0), 0);
+
+                                    const typeLabel = isStandalone
+                                        ? 'Entire Place'
+                                        : rooms.length > 1
+                                            ? `${rooms.length} Room Types`
+                                            : rooms[0]?.roomType?.replace('_', ' ') || '';
 
                                     return (
                                         <div
@@ -323,7 +323,6 @@ const MyPropertiesPage = () => {
                                                     loading="lazy"
                                                 />
 
-                                                {/* Dynamic status pill */}
                                                 <div className="absolute top-4 left-4 z-10">
                                                     {isLive ? (
                                                         <span
@@ -341,11 +340,17 @@ const MyPropertiesPage = () => {
                                                     )}
                                                 </div>
 
-                                                {/* Property Type Badge */}
                                                 <span
                                                     className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm border border-white/5 text-white/80 text-[10px] font-bold px-2.5 py-1 rounded-lg tracking-wider uppercase">
                                                     {property.propertyType?.replace('_', ' ')}
                                                 </span>
+
+                                                {!isStandalone && totalInventory > 0 && (
+                                                    <span
+                                                        className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm border border-white/5 text-white/80 text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                                                        {totalInventory} rooms total
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Content Card Body */}
@@ -360,31 +365,32 @@ const MyPropertiesPage = () => {
                                                         {property.name}
                                                     </h3>
                                                     <p className="text-xs text-[#8A8FA8] mt-1 font-medium uppercase tracking-wide">
-                                                        {roomType?.replace('_', ' ')}
+                                                        {typeLabel}
                                                     </p>
                                                 </div>
 
-                                                {/* Status and Booked state rings */}
                                                 <div
                                                     className="flex items-center justify-between border-t border-b border-[#1A1D26]/70 py-3 text-xs font-semibold text-[#8A8FA8]">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[11px]">Price:</span>
+                                                        <span className="text-[11px]">
+                                                            {rooms.length > 1 ? 'From:' : 'Price:'}
+                                                        </span>
                                                         <span
-                                                            className="text-[#FAFAF8] font-extrabold text-sm">${price}</span>
+                                                            className="text-[#FAFAF8] font-extrabold text-sm">{priceLabel}</span>
                                                         <span className="text-[10px] text-[#8A8FA8]/70">/ night</span>
                                                     </div>
 
-                                                    {isLive && isBooked && (
+                                                    {isLive && blocked && (
                                                         <span
                                                             className="flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-950/40 text-indigo-400 border border-indigo-500/20">
-                                                            Guest Occupied
+                                                            <Lock className="w-3 h-3"/>
+                                                            Dates Blocked
                                                         </span>
                                                     )}
                                                 </div>
 
                                                 {/* Card Actions Footer */}
                                                 <div className="grid grid-cols-3 gap-2 mt-auto pt-1">
-                                                    {/* Manage Availability */}
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -400,7 +406,6 @@ const MyPropertiesPage = () => {
                                                             className="text-[9px] font-bold text-[#8A8FA8] group-hover/btn:text-[#FAFAF8] tracking-wider uppercase">Calendar</span>
                                                     </button>
 
-                                                    {/* Edit Listing */}
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -416,13 +421,13 @@ const MyPropertiesPage = () => {
                                                             className="text-[9px] font-bold text-[#8A8FA8] group-hover/btn:text-[#FAFAF8] tracking-wider uppercase">Parameters</span>
                                                     </button>
 
-                                                    {/* Pause/Activate Toggle */}
                                                     {confirmingId === property.id ? (
                                                         <div
                                                             className="col-span-1 flex flex-col items-center justify-center gap-1 py-2 bg-rose-500/10 border border-rose-500/30 rounded-xl">
-        <span className="text-[8px] font-bold text-rose-300 uppercase tracking-wider text-center leading-tight px-1">
-            Sure?
-        </span>
+                                                            <span
+                                                                className="text-[8px] font-bold text-rose-300 uppercase tracking-wider text-center leading-tight px-1">
+                                                                Sure?
+                                                            </span>
                                                             <div className="flex gap-1">
                                                                 <button
                                                                     type="button"
@@ -454,8 +459,8 @@ const MyPropertiesPage = () => {
                                                             <Power className="w-4 h-4"/>
                                                             <span
                                                                 className="text-[9px] font-bold tracking-wider uppercase">
-            {property.isActive ? 'Pause' : 'Activate'}
-        </span>
+                                                                {property.isActive ? 'Pause' : 'Activate'}
+                                                            </span>
                                                         </button>
                                                     )}
                                                 </div>

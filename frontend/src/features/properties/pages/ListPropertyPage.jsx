@@ -2,7 +2,7 @@ import {useState, useCallback} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {Compass, ArrowLeft, ChevronLeft, ChevronRight, Loader2, Star} from 'lucide-react';
 
-import {T, STEPS} from '../components/list-property/constants';
+import {T, STEPS} from '../components/constants.js';
 import StepBar from '../components/list-property/StepBar';
 import Step1 from '../components/list-property/Step1';
 import Step2 from '../components/list-property/Step2';
@@ -127,7 +127,7 @@ const ListPropertyPage = () => {
                 cancellationPolicy: data.cancellationPolicy,
                 roomCategories: (data.roomCategories || []).map(({ images, ...rest }) => ({
                     ...rest,
-                    images: null   // ← strip JS file objects; files go via roomImages_N parts
+                    images: null
                 })),
                 propertyBlockRules: []
             };

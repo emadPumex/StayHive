@@ -8,15 +8,10 @@ import com.stayhive.model.property.RoomCategory.RoomType;
 public record PropertyUpdateDTO(
         String name,
         String summary,
-        Double price,
+        String propertyType,
         String city,
-        PropertyType propertyType,
-        RoomType roomType,
-        Integer accommodates,
-        Integer bedroomCount,
-        Integer bedrooms,
-        Integer bathrooms,
-        String cancellationPolicy,
-        List<String> amenities
+        List<AmenityDTO> propertyAmenities,
+        CancellationPolicyDTO cancellationPolicy,
+        List<RoomCategoryDTO> roomCategories
 ) {
 }

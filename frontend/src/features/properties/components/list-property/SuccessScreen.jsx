@@ -1,5 +1,5 @@
 import { Mail, ArrowRight } from 'lucide-react';
-import { T } from './constants';
+import { T } from '../constants.js';
 import { useNavigate } from 'react-router-dom';
 
 const SuccessScreen = () => {

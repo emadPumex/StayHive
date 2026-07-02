@@ -1,7 +1,7 @@
 // Step1.jsx
 import {useRef, useState, useCallback, useEffect} from 'react';
 import {ChevronRight, Loader2, Navigation, AlertCircle, CheckCircle2, Upload, Image as ImageIcon, X, Camera, ShieldCheck} from 'lucide-react';
-import {PROPERTY_TYPES, COUNTRIES, T} from './constants';
+import {PROPERTY_TYPES, COUNTRIES, T} from '../constants.js';
 import {createLocalPreview, revokeLocalPreview} from './utils';
 import {
     Label,

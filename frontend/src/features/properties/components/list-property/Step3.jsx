@@ -1,5 +1,5 @@
 import {CheckCircle2, AlertCircle} from 'lucide-react';
-import {AMENITY_LIST, T} from './constants';
+import {AMENITY_LIST, T} from '../constants.js';
 
 const Step3 = ({data, set}) => {
     const toggle = (amenityDef) => {
